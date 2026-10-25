@@ -24,10 +24,10 @@ Ekran görüntüsü: `docs/ekran-goruntusu.png` (yer tutucu)
 | --- | --- |
 | MapLibre GL JS | Harita görüntüleme ve katmanlar |
 | OpenStreetMap | Raster harita karoları |
-| Nominatim | Adres arama |
+| Photon (Komoot) | Yazarken adres arama |
 | Open-Meteo | Canlı hava ve saatlik tahmin |
-| OpenSky Network | Canlı uçuş durumları |
-| OSRM | Yürüme, bisiklet ve araba rotası |
+| ADSB.lol (yedek: OpenSky Network) | Canlı uçuş durumları |
+| OSRM / FOSSGIS routing | Yürüme, bisiklet ve araba rotası |
 | Overpass API | Metro, tramvay ve vapur hatları |
 | Vanilla JavaScript | Arayüz ve orkestrasyon |
 | Vitest | Saf fonksiyon testleri |
@@ -41,9 +41,10 @@ flowchart LR
   App --> Utils[utils.js]
   App --> Harita[MapLibre GL JS]
   Harita --> OSM[OpenStreetMap]
-  App --> Nominatim
+  App --> Photon
   App --> OSRM
   App --> Meteo[Open-Meteo]
+  App --> ADSBlol
   App --> OpenSky[OpenSky Network]
   App --> Overpass[Overpass API]
   App --> PWA[Service Worker]
@@ -80,10 +81,11 @@ MIT. Metin `LICENSE` dosyasındadır.
 
 - OpenStreetMap: © OpenStreetMap contributors. Harita ve ulaşım geometrisi Open Database License (ODbL) altındadır. https://www.openstreetmap.org/copyright
 - Open-Meteo: Hava verisi Open-Meteo.com tarafından sağlanır, CC BY 4.0. https://open-meteo.com/
-- OpenSky Network: Uçuş durumları The OpenSky Network API üzerinden gelir. https://opensky-network.org
-- OSRM: Rota motoru Project OSRM demo sunucusudur. Yol ağı verisi © OpenStreetMap contributors. https://project-osrm.org/
-- Overpass API: Toplu taşıma ilişkileri Overpass API ile sorgulanır. Veri © OpenStreetMap contributors. https://overpass-api.de/
-- Nominatim: Adres araması OpenStreetMap Nominatim örneğidir. Veri © OpenStreetMap contributors, ODbL.
+- ADSB.lol: Canlı uçak konumları; açık veri tabanı lisansı ODbL. https://api.adsb.lol/docs
+- OpenSky Network: Yedek uçuş akışı; istek kotası ve kimlik doğrulama koşulları değişebilir. https://opensky-network.org
+- OSRM / FOSSGIS: Yaya, bisiklet ve araç yönlendirmesi. Yol ağı verisi © OpenStreetMap contributors. https://routing.openstreetmap.de/about.html
+- Overpass API: Toplu taşıma ilişkileri genel kapsamlı Overpass örneklerinden sorgulanır. Veri © OpenStreetMap contributors. https://overpass.private.coffee/
+- Photon by Komoot: Adres araması; veri © OpenStreetMap contributors, ODbL. https://photon.komoot.io/
 - MapLibre GL JS: BSD 3-Clause. https://maplibre.org/
 
 Bu kokpit Türkiye kaynaklı hiçbir API, veri seti, CDN, font veya ikon paketi kullanmaz. Tüm veri kaynakları yabancı operatörler tarafından sunulur ve açık lisanslıdır.
