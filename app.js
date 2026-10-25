@@ -1,11 +1,8 @@
 import {
-  buildStopGraph,
   coordsToLineString,
-  dijkstra,
   formatDistance,
   formatDuration,
   haversine,
-  overpassToGeoJSON,
   readCache,
   wmoToTurkish,
   writeCache
@@ -13,17 +10,16 @@ import {
 
 const CENTER = { lat: 41.0082, lon: 28.9784 };
 const WEATHER_TTL = 10 * 60 * 1000;
-const TRANSIT_TTL = 30 * 60 * 1000;
+const BIKE_TTL = 45 * 60 * 1000;
 const PLACE_SEARCH_GAP = 700;
 const OVERPASS_ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter'
 ];
-const OVERPASS_QUERY = '[out:json][timeout:25];(relation["route"~"^(subway|light_rail|tram|ferry|train|monorail)$"](40.80,28.40,41.35,29.50););out geom;';
+const BIKE_QUERY = '[out:json][timeout:25];(way["highway"="cycleway"](40.80,28.40,41.35,29.50);way["cycleway"~"^(lane|track|shared_lane|share_busway|opposite_lane|opposite_track)$"](40.80,28.40,41.35,29.50);way["cycleway:left"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["cycleway:right"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["cycleway:both"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["bicycle"="designated"]["highway"~"^(path|footway|track)$"](40.80,28.40,41.35,29.50););out tags geom;';
 const LAYER_IDS = {
-  lines: 'transit-lines',
-  stops: 'transit-stops',
+  bikeways: 'bikeways',
   weather: 'weather-point'
 };
 const PROFILE_LABEL = { foot: 'Yürüme', bike: 'Bisiklet', driving: 'Araba' };
@@ -32,8 +28,7 @@ let map = null;
 let mapReady = false;
 let liveDataStarted = false;
 let profile = 'foot';
-let stopRecords = [];
-let stopGraph = null;
+let bikewaysCollection = emptyCollection();
 let weatherMarker = null;
 let tileWarned = false;
 let nomChain = Promise.resolve();
@@ -41,6 +36,7 @@ let nomAt = 0;
 const searchSeq = { origin: 0, destination: 0 };
 const debounceTimers = new Map();
 const markers = { origin: null, destination: null };
+let notesTimer = null;
 
 function emptyCollection() {
   return { type: 'FeatureCollection', features: [] };
@@ -98,16 +94,6 @@ async function fetchJson(url, options, timeoutMs, label) {
 
 function storage() {
   return window.localStorage;
-}
-
-function modeLabel(mode) {
-  if (mode === 'subway') return 'Metro';
-  if (mode === 'light_rail') return 'Hafif ray';
-  if (mode === 'tram') return 'Tramvay';
-  if (mode === 'ferry') return 'Vapur';
-  if (mode === 'train') return 'Tren / Marmaray';
-  if (mode === 'monorail') return 'Monoray';
-  return 'Hat';
 }
 
 function readPoint(id) {
@@ -177,70 +163,6 @@ function dropPin(which, lon, lat) {
   markers[which] = new maplibregl.Marker({ color }).setLngLat([lon, lat]).addTo(map);
 }
 
-function focusStop(stop) {
-  if (!stop) return;
-  if (map && map.getSource('nearest-stop')) {
-    map.getSource('nearest-stop').setData({
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
-        properties: { name: stop.name }
-      }]
-    });
-    map.flyTo({ center: [stop.lon, stop.lat], zoom: 14, essential: true });
-  }
-}
-
-function nearestStop(lat, lon) {
-  let best = null;
-  let bestDistance = Infinity;
-  const seen = new Set();
-  for (const stop of stopRecords) {
-    if (seen.has(stop.id)) continue;
-    seen.add(stop.id);
-    const distance = haversine(lat, lon, stop.lat, stop.lon);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = stop;
-    }
-  }
-  return best ? { stop: best, distance: bestDistance } : null;
-}
-
-function renderStopList() {
-  const list = document.getElementById('stop-list');
-  const unique = [];
-  const seen = new Set();
-  for (const stop of stopRecords) {
-    if (seen.has(stop.id)) continue;
-    seen.add(stop.id);
-    unique.push({ ...stop, distance: haversine(CENTER.lat, CENTER.lon, stop.lat, stop.lon) });
-  }
-  unique.sort((a, b) => a.distance - b.distance);
-  const slice = unique.slice(0, 40);
-  document.getElementById('stop-count').textContent = unique.length ? `${unique.length} durak` : '0 durak';
-  list.replaceChildren();
-  if (!slice.length) {
-    const item = document.createElement('li');
-    item.className = 'suggest-empty';
-    item.textContent = 'Durak bulunamadı';
-    list.append(item);
-    return;
-  }
-  slice.forEach((stop) => {
-    const item = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'stop-item';
-    button.textContent = `${stop.name} · ${modeLabel(stop.mode)}`;
-    button.setAttribute('aria-label', `${stop.name} durağını haritada göster`);
-    button.addEventListener('click', () => focusStop(stop));
-    item.append(button);
-    list.append(item);
-  });
-}
-
 function decimate(coords, max) {
   if (!Array.isArray(coords)) return [];
   if (coords.length <= max) return coords.slice();
@@ -253,107 +175,119 @@ function decimate(coords, max) {
   return out;
 }
 
-function applyTransit(payload) {
-  stopRecords = payload.records || [];
-  try {
-    stopGraph = buildStopGraph(stopRecords);
-  } catch (error) {
-    stopGraph = { nodes: {}, adj: {} };
-    toast('Durak ağı kurulamadı');
-  }
-  if (mapReady && map && map.getSource('transit-lines')) {
-    map.getSource('transit-lines').setData(payload.lines || emptyCollection());
-    map.getSource('transit-stops').setData(payload.stops || emptyCollection());
-  }
-  renderStopList();
+function bikeCategory(tags) {
+  const values = ['cycleway', 'cycleway:left', 'cycleway:right', 'cycleway:both']
+    .map((key) => tags[key]).filter((value) => typeof value === 'string');
+  if (tags.highway === 'cycleway' || values.includes('track')) return 'dedicated';
+  if (values.some((value) => ['lane', 'opposite_lane'].includes(value))) return 'lane';
+  if (tags.bicycle === 'designated' ||
+      values.some((value) => ['shared_lane', 'share_busway', 'opposite_track'].includes(value)) ||
+      ['path', 'footway', 'track'].includes(tags.highway)) return 'shared';
+  return null;
 }
 
-function payloadFromGeo(geo) {
-  return {
-    lines: {
-      type: 'FeatureCollection',
-      features: geo.lines.features.map((feature) => ({
-        type: 'Feature',
-        properties: feature.properties,
-        geometry: { type: 'LineString', coordinates: decimate(feature.geometry.coordinates, 240) }
-      }))
-    },
-    stops: geo.stops,
-    records: geo.stops.features.map((feature) => ({
-      id: String(feature.properties.id),
-      name: feature.properties.name,
-      lat: feature.geometry.coordinates[1],
-      lon: feature.geometry.coordinates[0],
-      lineId: String(feature.properties.lineId),
-      sequence: feature.properties.sequence,
-      mode: feature.properties.mode
-    }))
-  };
+function bikeCategoryLabel(category) {
+  if (category === 'dedicated') return 'Ayrılmış bisiklet yolu';
+  if (category === 'lane') return 'Yol üzeri bisiklet şeridi';
+  if (category === 'shared') return 'Paylaşımlı / bisiklete açık güzergâh';
+  return 'Bisiklet altyapısı';
 }
 
-async function fetchOverpass() {
+function bikeNetworkFromOverpass(data) {
+  const elements = data && Array.isArray(data.elements) ? data.elements : [];
+  const features = [];
+  for (const way of elements) {
+    if (!way || way.type !== 'way' || !Array.isArray(way.geometry)) continue;
+    const tags = way.tags && typeof way.tags === 'object' ? way.tags : {};
+    const category = bikeCategory(tags);
+    if (!category) continue;
+    const coords = way.geometry
+      .filter((point) => point && Number.isFinite(point.lat) && Number.isFinite(point.lon))
+      .map((point) => [point.lon, point.lat]);
+    if (coords.length < 2) continue;
+    features.push({
+      type: 'Feature',
+      id: String(way.id),
+      geometry: { type: 'LineString', coordinates: decimate(coords, 180) },
+      properties: {
+        id: String(way.id),
+        name: tags.name || tags.ref || '',
+        category,
+        surface: tags.surface || tags['cycleway:surface'] || 'belirtilmemiş',
+        segregated: tags.segregated || 'bilinmiyor',
+        lit: tags.lit || 'bilinmiyor',
+        oneway: tags.oneway || 'bilinmiyor'
+      }
+    });
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+function renderBikeNetwork(collection, freshness = 'GÜNCEL') {
+  bikewaysCollection = collection && Array.isArray(collection.features) ? collection : emptyCollection();
+  if (mapReady && map && map.getSource('bikeways')) map.getSource('bikeways').setData(bikewaysCollection);
+  const features = bikewaysCollection.features;
+  const count = (category) => features.filter((feature) => feature.properties.category === category).length;
+  const countNode = document.getElementById('bike-count');
+  const detailNode = document.getElementById('bike-detail');
+  const summaryNode = document.getElementById('bike-summary');
+  if (countNode) countNode.textContent = features.length ? `${features.length.toLocaleString('tr-TR')} bölüm` : 'Veri bekleniyor';
+  if (detailNode) detailNode.textContent = `${count('dedicated')} ayrılmış · ${count('lane')} şerit · ${count('shared')} paylaşımlı`;
+  if (summaryNode) summaryNode.textContent = features.length
+    ? 'Haritada kayıtlı bisiklet altyapısı bulundu. Çizgiler, kayıtlı altyapı türüne göre renklendirilmiştir.'
+    : 'Bu alan için henüz bisiklet altyapısı kaydı bulunamadı.';
+  updateFreshness('bike-updated', freshness);
+}
+
+async function fetchBikeNetwork() {
   let lastError = null;
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
       const body = new URLSearchParams();
-      body.set('data', OVERPASS_QUERY);
+      body.set('data', BIKE_QUERY);
       const data = await fetchJson(endpoint, {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-        body
-      }, 28000, 'Overpass');
-      if (!data || !Array.isArray(data.elements)) throw new Error('Overpass yanıtı beklenen biçimde değil');
-      const geo = overpassToGeoJSON(data);
-      if (geo.lines.features.length && geo.stops.features.length) return data;
-      lastError = new Error('Bu sunucudan yeterli hat ve durak geometrisi alınamadı');
+        method: 'POST', headers: { Accept: 'application/json' }, body
+      }, 28000, 'Bisiklet haritası');
+      if (!data || !Array.isArray(data.elements)) throw new Error('Bisiklet verisi beklenen biçimde değil');
+      const collection = bikeNetworkFromOverpass(data);
+      if (collection.features.length) return collection;
+      lastError = new Error('Bu sunucuda eşleşen bisiklet altyapısı kaydı bulunamadı');
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Overpass erişilemedi');
+      lastError = error instanceof Error ? error : new Error('Bisiklet verisine ulaşılamadı');
     }
   }
-  throw lastError || new Error('Overpass erişilemedi');
+  throw lastError || new Error('Bisiklet ağına ulaşılamadı');
 }
 
-async function loadTransit(force = false) {
-  const key = 'cockpit:transit:v2';
-  try {
-    const cached = force ? null : readCache(storage(), key);
-    if (cached && cached.lines && cached.stops) {
-      applyTransit(cached);
-      updateFreshness('transit-updated', 'ÖNBELLEK');
-      return;
-    }
-  } catch (error) {
-    toast('Kayıtlı hatlar okunamadı', 'warn');
+async function loadBikeNetwork(force = false) {
+  const key = 'ergin-lab:bikeways:v1';
+  if (!force) {
+    try {
+      const cached = readCache(storage(), key);
+      if (cached && cached.type === 'FeatureCollection' && Array.isArray(cached.features) && cached.features.length) {
+        renderBikeNetwork(cached, 'ÖNBELLEK');
+        return;
+      }
+    } catch (error) { console.warn('Bike infrastructure cache could not be read.', error); }
   }
   try {
-    const data = await fetchOverpass();
-    const payload = payloadFromGeo(overpassToGeoJSON(data));
-    applyTransit(payload);
-    updateFreshness('transit-updated', 'CANLI VERİ');
-    try {
-      writeCache(storage(), key, payload, TRANSIT_TTL);
-    } catch (error) {
-      toast('Hatlar önbelleğe yazılamadı', 'warn');
-    }
-    if (!payload.lines.features.length) toast('Toplu taşıma hattı bulunamadı', 'warn');
+    const collection = await fetchBikeNetwork();
+    renderBikeNetwork(collection, 'CANLI VERİ');
+    try { writeCache(storage(), key, collection, BIKE_TTL); }
+    catch (error) { console.warn('Bike infrastructure cache could not be written.', error); }
   } catch (error) {
     let cached = null;
     try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
-    if (cached && cached.lines && cached.stops) {
-      applyTransit(cached);
-      updateFreshness('transit-updated', 'ÖNBELLEK');
-      toast('Canlı ulaşım verisi geçici olarak erişilemiyor; kayıtlı duraklar korunuyor.', 'warn');
+    if (cached && cached.type === 'FeatureCollection' && Array.isArray(cached.features)) {
+      renderBikeNetwork(cached, 'ÖNBELLEK');
+      if (force) toast('Canlı bisiklet verisi geçici olarak alınamadı; kayıtlı harita korunuyor.', 'warn');
     } else {
-      updateFreshness('transit-updated', 'BAĞLANTI YOK');
-      console.warn('All international transit feeds failed.', error);
-      const list = document.getElementById('stop-list');
-      if (list) {
-        list.replaceChildren();
-        const item = document.createElement('li');
-        item.className = 'suggest-empty';
-        item.textContent = 'Durak verisi şu an alınamıyor. Yeniden denenecek.';
-        list.append(item);
-      }
+      updateFreshness('bike-updated', 'BAĞLANTI YOK');
+      const countNode = document.getElementById('bike-count');
+      const summaryNode = document.getElementById('bike-summary');
+      if (countNode) countNode.textContent = '—';
+      if (summaryNode) summaryNode.textContent = 'Bisiklet verisi şu an alınamıyor. Harita ve rota planlayıcısı çalışmaya devam eder.';
+      console.warn('All bicycle infrastructure feeds failed.', error);
     }
   }
 }
@@ -651,65 +585,6 @@ async function calculateRoute() {
   }
 }
 
-function calculateTransitRoute() {
-  const origin = readPoint('origin-input');
-  const destination = readPoint('destination-input');
-  if (!origin || !destination) {
-    toast('Durak rotası için başlangıç ve bitiş seçin');
-    return;
-  }
-  if (!stopGraph || !stopRecords.length) {
-    toast('Durak verisi henüz hazır değil');
-    return;
-  }
-  const from = nearestStop(origin.lat, origin.lon);
-  const to = nearestStop(destination.lat, destination.lon);
-  if (!from || !to) {
-    toast('Yakın durak bulunamadı');
-    return;
-  }
-  const result = dijkstra(stopGraph, from.stop.id, to.stop.id);
-  if (!result.path.length) {
-    toast('Bu duraklar arasında yol bulunamadı');
-    return;
-  }
-  const coords = result.path.map((id) => {
-    const node = stopGraph.nodes[id];
-    return [node.lon, node.lat];
-  });
-  if (map && map.getSource('route')) {
-    map.getSource('route').setData(coordsToLineString(coords));
-    fitLine(coords);
-  }
-  const names = result.path.map((id) => stopGraph.nodes[id].name || id);
-  showSummary('Durak rotası', 0, result.distance);
-  document.getElementById('summary-meta').textContent = `${names.length} durak · ${formatDistance(result.distance)}`;
-  renderSteps(names);
-  toast(`${from.stop.name} → ${to.stop.name}`, 'ok');
-}
-
-function locateNearest() {
-  if (!navigator.geolocation) {
-    toast('Konum servisi desteklenmiyor');
-    return;
-  }
-  if (!stopRecords.length) {
-    toast('Durak listesi henüz hazır değil');
-    return;
-  }
-  navigator.geolocation.getCurrentPosition((position) => {
-    const found = nearestStop(position.coords.latitude, position.coords.longitude);
-    if (!found) {
-      toast('Yakın durak bulunamadı');
-      return;
-    }
-    focusStop(found.stop);
-    toast(`${found.stop.name} · ${formatDistance(found.distance)}`, 'ok');
-  }, () => {
-    toast('Konum izni alınamadı');
-  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 });
-}
-
 function popup(lngLat, title, detail) {
   const box = document.createElement('div');
   const heading = document.createElement('strong');
@@ -721,76 +596,40 @@ function popup(lngLat, title, detail) {
 }
 
 function addLayers() {
-  map.addSource('transit-lines', { type: 'geojson', data: emptyCollection() });
+  map.addSource('bikeways', { type: 'geojson', data: emptyCollection() });
   map.addLayer({
-    id: 'transit-lines',
-    type: 'line',
-    source: 'transit-lines',
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    id: 'bikeways', type: 'line', source: 'bikeways',
+    layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' },
     paint: {
-      'line-color': ['match', ['get', 'mode'], 'subway', '#ff4138', 'light_rail', '#ff8a7d', 'tram', '#e3ad7c', 'ferry', '#e8c6cf', '#916b72'],
-      'line-width': 3
-    }
-  });
-  map.addSource('transit-stops', { type: 'geojson', data: emptyCollection() });
-  map.addLayer({
-    id: 'transit-stops',
-    type: 'circle',
-    source: 'transit-stops',
-    paint: {
-      'circle-radius': 4,
-      'circle-color': '#ffffff',
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#3b1118'
+      'line-color': ['match', ['get', 'category'], 'dedicated', '#65e3ad', 'lane', '#ff8a7d', 'shared', '#d8b6ff', '#ff4138'],
+      'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.6, 15, 4.5],
+      'line-opacity': 0.94
     }
   });
   map.addSource('weather-point', { type: 'geojson', data: emptyCollection() });
   map.addLayer({
-    id: 'weather-point',
-    type: 'circle',
-    source: 'weather-point',
-    paint: {
-      'circle-radius': 8,
-      'circle-color': '#ff3028',
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#3b1118'
-    }
+    id: 'weather-point', type: 'circle', source: 'weather-point',
+    paint: { 'circle-radius': 8, 'circle-color': '#ff3028', 'circle-stroke-width': 2, 'circle-stroke-color': '#3b1118' }
   });
   map.addSource('route', { type: 'geojson', data: emptyCollection() });
   map.addLayer({
-    id: 'route-line',
-    type: 'line',
-    source: 'route',
+    id: 'route-line', type: 'line', source: 'route',
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': '#dc2626', 'line-width': 5, 'line-opacity': 0.92 }
   });
-  map.addSource('nearest-stop', { type: 'geojson', data: emptyCollection() });
-  map.addLayer({
-    id: 'nearest-stop',
-    type: 'circle',
-    source: 'nearest-stop',
-    paint: {
-      'circle-radius': 9,
-      'circle-color': '#f0a08e',
-      'circle-stroke-width': 3,
-      'circle-stroke-color': '#ffffff'
-    }
-  });
-  ['transit-stops', 'transit-lines'].forEach((id) => {
-    map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
-  });
-  map.on('click', 'transit-stops', (event) => {
+  map.on('mouseenter', 'bikeways', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'bikeways', () => { map.getCanvas().style.cursor = ''; });
+  map.on('click', 'bikeways', (event) => {
     const feature = event.features && event.features[0];
     if (!feature) return;
-    const name = feature.properties.name || 'Durak';
-    const line = feature.properties.lineName || modeLabel(feature.properties.mode);
-    popup(event.lngLat, name, line);
-  });
-  map.on('click', 'transit-lines', (event) => {
-    const feature = event.features && event.features[0];
-    if (!feature) return;
-    popup(event.lngLat, feature.properties.name || 'Hat', modeLabel(feature.properties.mode));
+    const p = feature.properties || {};
+    const details = [
+      bikeCategoryLabel(p.category),
+      p.surface && p.surface !== 'belirtilmemiş' ? `Zemin: ${p.surface}` : '',
+      p.segregated && p.segregated !== 'bilinmiyor' ? `Yaya ayrımı: ${p.segregated}` : '',
+      p.lit && p.lit !== 'bilinmiyor' ? `Aydınlatma: ${p.lit}` : ''
+    ].filter(Boolean).join(' · ');
+    popup(event.lngLat, p.name || 'Bisiklet güzergâhı', details);
   });
 }
 
@@ -798,13 +637,13 @@ function startLiveData() {
   if (liveDataStarted) return;
   liveDataStarted = true;
   loadWeather(false);
-  loadTransit();
+  loadBikeNetwork();
   window.setInterval(() => {
     if (navigator.onLine) loadWeather(true);
   }, WEATHER_TTL);
   window.setInterval(() => {
-    if (navigator.onLine) loadTransit(true);
-  }, 30 * 60 * 1000);
+    if (navigator.onLine) loadBikeNetwork(true);
+  }, BIKE_TTL);
 }
 
 function initMap() {
@@ -890,9 +729,69 @@ function applyTheme(theme) {
   }
 }
 
+function bindNotes() {
+  const area = document.getElementById('lab-notes');
+  const status = document.getElementById('notes-status');
+  const count = document.getElementById('notes-count');
+  const saveButton = document.getElementById('notes-save');
+  const clearButton = document.getElementById('notes-clear');
+  const exportButton = document.getElementById('notes-export');
+  if (!area || !status || !count) return;
+  const key = 'ergin-lab:field-notes:v1';
+  const setCount = () => { count.textContent = `${area.value.length.toLocaleString('tr-TR')} / 6000 karakter`; };
+  const save = () => {
+    try {
+      window.localStorage.setItem(key, area.value);
+      status.textContent = 'Bu cihazda kaydedildi';
+    } catch (error) {
+      status.textContent = 'Tarayıcı kaydına izin vermedi';
+    }
+    setCount();
+  };
+  try {
+    area.value = window.localStorage.getItem(key) || '';
+    status.textContent = 'Notlar bu cihazda saklanır';
+  } catch (error) {
+    status.textContent = 'Yerel kayıt kullanılamıyor';
+  }
+  setCount();
+  area.addEventListener('input', () => {
+    status.textContent = 'Kaydediliyor…';
+    setCount();
+    if (notesTimer) window.clearTimeout(notesTimer);
+    notesTimer = window.setTimeout(save, 300);
+  });
+  if (saveButton) saveButton.addEventListener('click', () => {
+    if (notesTimer) window.clearTimeout(notesTimer);
+    save();
+  });
+  if (clearButton) clearButton.addEventListener('click', () => {
+    if (!area.value) return;
+    if (!window.confirm('Bu cihazda saklanan deney notları silinsin mi?')) return;
+    area.value = '';
+    if (notesTimer) window.clearTimeout(notesTimer);
+    try { window.localStorage.removeItem(key); } catch (error) {}
+    status.textContent = 'Notlar temizlendi';
+    setCount();
+  });
+  if (exportButton) exportButton.addEventListener('click', () => {
+    const blob = new Blob([area.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ergin-lab-deney-notlari.txt';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = 'Not dosyası dışa aktarıldı';
+  });
+}
+
 function bindUi() {
   setLucide('route-icon', 'route');
-  setLucide('stop-icon', 'map-pin');
+  setLucide('bike-icon', 'bike');
+  setLucide('notes-icon', 'notebook-pen');
   setLucide('mode-foot', 'footprints');
   setLucide('mode-bike', 'bike');
   setLucide('mode-car', 'car');
@@ -925,11 +824,18 @@ function bindUi() {
     event.preventDefault();
     calculateRoute();
   });
-  document.getElementById('nearest-btn').addEventListener('click', locateNearest);
-  document.getElementById('transit-route-btn').addEventListener('click', calculateTransitRoute);
   document.getElementById('weather-refresh').addEventListener('click', () => loadWeather(true));
   bindSearch('origin-input', 'origin-suggest', 'origin');
   bindSearch('destination-input', 'destination-suggest', 'destination');
+  const bikeRefresh = document.getElementById('bike-refresh');
+  if (bikeRefresh) bikeRefresh.addEventListener('click', () => loadBikeNetwork(true));
+  const separatedOnly = document.getElementById('bike-separated-toggle');
+  if (separatedOnly) separatedOnly.addEventListener('change', () => {
+    if (map && map.getLayer('bikeways')) {
+      map.setFilter('bikeways', separatedOnly.checked ? ['==', ['get', 'category'], 'dedicated'] : null);
+    }
+  });
+  bindNotes();
   document.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) return;
     document.querySelectorAll('.suggest').forEach((list) => {
