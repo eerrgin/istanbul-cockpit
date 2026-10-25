@@ -1,4 +1,4 @@
-const VERSION = 'v7-open-data';
+const VERSION = 'v8-no-flights';
 const STATIC_CACHE = `istanbul-cockpit-static-${VERSION}`;
 const API_CACHE = `istanbul-cockpit-api-${VERSION}`;
 const ASSETS = ['./index.html', './style.css', './app.js', './utils.js', './manifest.json'];
