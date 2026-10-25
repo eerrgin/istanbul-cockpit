@@ -1,8 +1,8 @@
 # İstanbul Açık Ulaşım ve Hava Kokpiti
 
-Tarayıcıda çalışan, yabancı ve açık kaynaklı servislerle İstanbul ulaşımını, canlı havayı ve uçuş radarını tek kokpitte toplayan çevrimdışı kullanılabilir bir PWA.
+Tarayıcıda çalışan, yabancı ve açık kaynaklı servislerle İstanbul ulaşımını, canlı havayı ve ulaşım verilerini tek kokpitte toplayan çevrimdışı kullanılabilir bir PWA.
 
-Canlı demo: `https://example.com/istanbul-cockpit` (yer tutucu)
+Canlı demo: `https://eerrgin.github.io/istanbul-cockpit/` (yer tutucu)
 
 Ekran görüntüsü: `docs/ekran-goruntusu.png` (yer tutucu)
 
@@ -10,7 +10,6 @@ Ekran görüntüsü: `docs/ekran-goruntusu.png` (yer tutucu)
 
 - Çok modlu rota planlama: yürüme, bisiklet ve araba
 - Canlı hava durumu ve saatlik tahmin
-- Canlı uçuş radarı
 - Toplu taşıma hatları ve duraklar
 - En yakın durak bulma
 - Duraklar arası istemci tarafı rota
@@ -26,7 +25,6 @@ Ekran görüntüsü: `docs/ekran-goruntusu.png` (yer tutucu)
 | OpenStreetMap | Raster harita karoları |
 | Photon (Komoot) | Yazarken adres arama |
 | Open-Meteo | Canlı hava ve saatlik tahmin |
-| ADSB.lol (yedek: OpenSky Network) | Canlı uçuş durumları |
 | OSRM / FOSSGIS routing | Yürüme, bisiklet ve araba rotası |
 | Overpass API | Metro, tramvay ve vapur hatları |
 | Vanilla JavaScript | Arayüz ve orkestrasyon |
@@ -44,8 +42,6 @@ flowchart LR
   App --> Photon
   App --> OSRM
   App --> Meteo[Open-Meteo]
-  App --> ADSBlol
-  App --> OpenSky[OpenSky Network]
   App --> Overpass[Overpass API]
   App --> PWA[Service Worker]
 ```
@@ -81,8 +77,6 @@ MIT. Metin `LICENSE` dosyasındadır.
 
 - OpenStreetMap: © OpenStreetMap contributors. Harita ve ulaşım geometrisi Open Database License (ODbL) altındadır. https://www.openstreetmap.org/copyright
 - Open-Meteo: Hava verisi Open-Meteo.com tarafından sağlanır, CC BY 4.0. https://open-meteo.com/
-- ADSB.lol: Canlı uçak konumları; açık veri tabanı lisansı ODbL. https://api.adsb.lol/docs
-- OpenSky Network: Yedek uçuş akışı; istek kotası ve kimlik doğrulama koşulları değişebilir. https://opensky-network.org
 - OSRM / FOSSGIS: Yaya, bisiklet ve araç yönlendirmesi. Yol ağı verisi © OpenStreetMap contributors. https://routing.openstreetmap.de/about.html
 - Overpass API: Toplu taşıma ilişkileri genel kapsamlı Overpass örneklerinden sorgulanır. Veri © OpenStreetMap contributors. https://overpass.private.coffee/
 - Photon by Komoot: Adres araması; veri © OpenStreetMap contributors, ODbL. https://photon.komoot.io/
