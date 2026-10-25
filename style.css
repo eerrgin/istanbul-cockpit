@@ -524,3 +524,126 @@ html[data-embed="true"] .credit { display: none; }
   html[data-embed="true"] .big { font-size: clamp(18px, 5.2vw, 23px); }
   html[data-embed="true"] .city-map { min-height: 122px; }
 }
+
+
+/* FINAL EMBED LAYOUT FIX · no stretched forecast tiles, no nested vertical scroll */
+html[data-embed="true"] body { overflow: visible; }
+html[data-embed="true"] main { overflow: visible; }
+html[data-embed="true"] .hero {
+  display: grid;
+  grid-template-columns: minmax(112px, .68fr) minmax(0, 2.15fr) minmax(164px, .9fr);
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "temp stats map"
+    "hours hours map"
+    "days days map";
+  align-items: start;
+  gap: 8px 10px;
+  padding: 11px;
+}
+html[data-embed="true"] .hero-main { grid-area: temp; align-self: start; }
+html[data-embed="true"] .hero-stats { grid-area: stats; align-self: start; }
+html[data-embed="true"] .hours {
+  grid-area: hours;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-auto-flow: row;
+  grid-auto-columns: auto;
+  align-items: start;
+  align-content: start;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0;
+  padding: 0 0 3px;
+  gap: 6px;
+}
+html[data-embed="true"] .hours > .chip {
+  align-self: start;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 7px 6px;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .hours > .chip span { overflow-wrap: anywhere; }
+html[data-embed="true"] .days {
+  grid-area: days;
+  align-self: start;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  min-width: 0;
+  margin: 0;
+  gap: 6px;
+}
+html[data-embed="true"] .days > .chip { align-self: start; min-width: 0; padding: 7px 6px; }
+html[data-embed="true"] .city-map {
+  grid-area: map;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 188px;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+html[data-embed="true"] .city-map .tiles {
+  transform: translate(-18%, -32%);
+}
+html[data-embed="true"] .city-map figcaption {
+  left: 6px;
+  bottom: 6px;
+  max-width: calc(58% - 6px);
+  padding: 3px 5px;
+  font-size: 7px;
+  letter-spacing: .025em;
+  white-space: nowrap;
+}
+html[data-embed="true"] .city-map .map-credit {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  z-index: 2;
+  max-width: calc(48% - 6px);
+  padding: 3px 4px;
+  border: 1px solid rgba(214,91,80,.28);
+  background: rgba(8,5,6,.82);
+  color: #cdb8ae;
+  font: 7px/1.2 var(--mono);
+  text-decoration: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+html[data-embed="true"] .grid {
+  align-items: stretch;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+  margin: 8px 0 0;
+}
+html[data-embed="true"] .inst { min-width: 0; }
+html[data-embed="true"] .inst h3 { overflow-wrap: anywhere; }
+html[data-embed="true"] .big { overflow-wrap: anywhere; }
+@media (max-width: 860px) {
+  html[data-embed="true"] .hero {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "temp map"
+      "stats map"
+      "hours hours"
+      "days days";
+    gap: 8px;
+  }
+  html[data-embed="true"] .city-map { min-height: 155px; }
+  html[data-embed="true"] .grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (max-width: 560px) {
+  html[data-embed="true"] .hero { padding: 9px; gap: 7px; }
+  html[data-embed="true"] .hours { grid-template-columns: repeat(8, minmax(68px, 1fr)); overflow-x: auto; }
+  html[data-embed="true"] .days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-embed="true"] .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-embed="true"] .city-map { min-height: 140px; }
+  html[data-embed="true"] .city-map figcaption { font-size: 7px; }
+}
