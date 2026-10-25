@@ -1,4 +1,5 @@
 import {
+  classifyBikeInfrastructure,
   coordsToLineString,
   formatDistance,
   formatDuration,
@@ -175,17 +176,6 @@ function decimate(coords, max) {
   return out;
 }
 
-function bikeCategory(tags) {
-  const values = ['cycleway', 'cycleway:left', 'cycleway:right', 'cycleway:both']
-    .map((key) => tags[key]).filter((value) => typeof value === 'string');
-  if (tags.highway === 'cycleway' || values.includes('track')) return 'dedicated';
-  if (values.some((value) => ['lane', 'opposite_lane'].includes(value))) return 'lane';
-  if (tags.bicycle === 'designated' ||
-      values.some((value) => ['shared_lane', 'share_busway', 'opposite_track'].includes(value)) ||
-      ['path', 'footway', 'track'].includes(tags.highway)) return 'shared';
-  return null;
-}
-
 function bikeCategoryLabel(category) {
   if (category === 'dedicated') return 'Ayrılmış bisiklet yolu';
   if (category === 'lane') return 'Yol üzeri bisiklet şeridi';
@@ -199,7 +189,7 @@ function bikeNetworkFromOverpass(data) {
   for (const way of elements) {
     if (!way || way.type !== 'way' || !Array.isArray(way.geometry)) continue;
     const tags = way.tags && typeof way.tags === 'object' ? way.tags : {};
-    const category = bikeCategory(tags);
+    const category = classifyBikeInfrastructure(tags);
     if (!category) continue;
     const coords = way.geometry
       .filter((point) => point && Number.isFinite(point.lat) && Number.isFinite(point.lon))
