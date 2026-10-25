@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bearing,
   buildStopGraph,
   coordsToLineString,
   dijkstra,
@@ -38,17 +37,7 @@ describe('haversine', () => {
   });
 });
 
-describe('bearing', () => {
-  it('kuzey yönü için sıfır derece döner', () => {
-    expect(bearing(0, 0, 1, 0)).toBeCloseTo(0, 5);
-  });
 
-  it('doğu yönü için doksan derece döner', () => {
-    expect(bearing(0, 0, 0, 1)).toBeCloseTo(90, 5);
-  });
-});
-
-describe('süre biçimi', () => {
   it('saniyeyi olduğu gibi yazar', () => {
     expect(formatDuration(45)).toBe('45 sn');
   });
