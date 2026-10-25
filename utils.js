@@ -176,8 +176,9 @@ export function normalizeAdsbLolAircraft(payload) {
   const aircraft = payload && Array.isArray(payload.aircraft) ? payload.aircraft : [];
   return aircraft.flatMap((plane) => {
     if (!plane || typeof plane !== 'object') return [];
-    const enlem = Number(plane.lat);
-    const boylam = Number(plane.lon);
+    if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') return [];
+    const enlem = plane.lat;
+    const boylam = plane.lon;
     if (!Number.isFinite(enlem) || !Number.isFinite(boylam) ||
         enlem < -90 || enlem > 90 || boylam < -180 || boylam > 180) return [];
     const baro = plane.alt_baro;
