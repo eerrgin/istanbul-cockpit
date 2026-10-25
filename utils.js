@@ -105,7 +105,7 @@ export function haversine(lat1, lon1, lat2, lon2) {
   return 2 * EARTH_RADIUS * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-(seconds) {
+export function formatDuration(seconds) {
   const total = Math.max(0, Math.round(Number(seconds) || 0));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
