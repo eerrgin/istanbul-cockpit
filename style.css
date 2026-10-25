@@ -760,3 +760,24 @@ html[data-embed="true"] .maplibregl-ctrl-logo { opacity: .86; }
   .weather-days { display: none; }
   html[data-embed="true"] .map-wrap { height: 430px; min-height: 360px; }
 }
+
+
+/* Resilient map failure state: cards remain live when external map tiles/library fail */
+.map-wrap.map-unavailable::after {
+  content: "HARİTA SİNYALİ KESİLDİ · HAVA VE UÇUŞ VERİLERİ AYRICA ÇALIŞIYOR";
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100% - 36px));
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 70, 60, .38);
+  background: rgba(10, 3, 6, .9);
+  color: #f2c4bb;
+  text-align: center;
+  font: 10px/1.8 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .11em;
+  pointer-events: none;
+  box-shadow: 0 18px 50px rgba(0,0,0,.28);
+}
