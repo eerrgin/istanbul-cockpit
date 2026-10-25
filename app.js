@@ -717,10 +717,6 @@ async function calculateRoute() {
     toast('Başlangıç ve bitiş çok yakın');
     return;
   }
-  if (!mapReady) {
-    toast('Harita henüz hazır değil', 'warn');
-    return;
-  }
   const button = document.getElementById('route-btn');
   button.disabled = true;
   try {
@@ -733,8 +729,10 @@ async function calculateRoute() {
     }
     const route = data.routes[0];
     const coords = route.geometry.coordinates;
-    map.getSource('route').setData(coordsToLineString(coords));
-    fitLine(coords);
+    if (mapReady && map && map.getSource('route')) {
+      map.getSource('route').setData(coordsToLineString(coords));
+      fitLine(coords);
+    }
     showSummary(PROFILE_LABEL[profile] || 'Rota', route.duration, route.distance);
     const steps = route.legs && route.legs[0] && Array.isArray(route.legs[0].steps) ? route.legs[0].steps : [];
     renderSteps(steps.map(stepText));
