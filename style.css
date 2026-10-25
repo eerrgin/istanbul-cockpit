@@ -803,3 +803,85 @@ html[data-embed="true"] .maplibregl-ctrl-logo { opacity: .86; }
 }
 .source-credit a:hover, a.source-credit:hover { color: #fff0e8; }
 .route-credit { margin-top: -5px; }
+
+
+/* ERGIN LAB · experimental cycling layer + private field log */
+.experiment-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 89, 78, .35);
+  border-radius: 5px;
+  background: rgba(255, 48, 40, .07);
+  color: #ff9a90;
+  font: 8px/1.2 var(--mono);
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+.bike-card, .notes-card { gap: 12px; }
+.bike-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid rgba(117, 48, 55, .45);
+  border-radius: 11px;
+  background: linear-gradient(120deg, rgba(255, 48, 40, .08), rgba(101, 227, 173, .035));
+}
+.bike-metrics strong { color: #f6ebe4; font: 600 30px/.98 var(--display); }
+.bike-metrics span { color: var(--muted); font: 9px/1.65 var(--mono); }
+.experiment-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid rgba(117, 48, 55, .45);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .025);
+  cursor: pointer;
+  color: #e5cac2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.experiment-toggle input { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: #ff5548; }
+.experiment-toggle strong { color: #ff9288; font-family: var(--mono); font-size: 10px; }
+.bike-legend { display: flex; flex-wrap: wrap; gap: 9px 13px; }
+.bike-legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
+.bike-legend i { display: inline-block; width: 16px; height: 3px; border-radius: 3px; }
+.legend-dedicated { background: #65e3ad; }
+.legend-lane { background: #ff8a7d; }
+.legend-shared { background: #d8b6ff; }
+.notes-title-wrap { min-width: 0; flex: 1; }
+.notes-title-wrap .kicker { margin-bottom: 3px; font-size: 8px; letter-spacing: .13em; }
+.notes-title-wrap h2 { font-family: var(--display); font-size: 22px; font-weight: 600; line-height: 1.05; }
+.notes-field { min-width: 0; }
+.notes-field textarea {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #482027;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, .26);
+  color: var(--text);
+  font: 12px/1.7 var(--font);
+}
+.notes-field textarea::placeholder { color: #8d716f; }
+.notes-field textarea:focus { outline: 2px solid rgba(255, 69, 60, .22); border-color: #984047; }
+.notes-status-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 12px; }
+.notes-count { color: #987b78; font: 9px/1.5 var(--mono); }
+.notes-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.notes-actions button { flex: 1 1 auto; min-width: 78px; padding-inline: 10px; font-size: 11px; }
+.notes-card .hint { margin-bottom: 2px; }
+#bike-refresh { width: 100%; min-height: 40px; }
+.layer-bar { min-width: 190px; }
+@media (max-width: 900px) {
+  .bike-metrics { padding: 11px; }
+  .notes-field textarea { min-height: 110px; }
+}
+@media (max-width: 600px) {
+  .notes-actions button { flex: 1 1 29%; }
+  .bike-legend { gap: 7px 10px; }
+  .bike-legend span { font-size: 9px; }
+}
