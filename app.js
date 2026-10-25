@@ -870,10 +870,10 @@ function initMap() {
     }, WEATHER_TTL);
     window.setInterval(() => {
       if (navigator.onLine) loadFlights(true);
-    }, FLIGHT_TTL);
+    }, 10 * 60 * 1000);
     window.setInterval(() => {
       if (navigator.onLine) loadTransit(true);
-    }, TRANSIT_TTL);
+    }, 30 * 60 * 1000);
   });
   map.on('error', (event) => {
     if (!mapReady && !tileWarned) {
@@ -910,7 +910,7 @@ function applyTheme(theme) {
   const next = theme === 'light' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', next === 'light' ? '#f3f6f8' : '#081018');
+  if (meta) meta.setAttribute('content', next === 'light' ? '#f2e8df' : '#070103');
   setLucide('theme-icon', next === 'light' ? 'moon' : 'sun');
   try {
     localStorage.setItem('istanbul-cockpit-theme', next);
