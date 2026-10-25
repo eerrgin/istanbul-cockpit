@@ -23,7 +23,7 @@
       if (savedTheme === 'light' || savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', savedTheme);
         var themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute('content', savedTheme === 'light' ? '#f3f6f8' : '#081018');
+        if (themeMeta) themeMeta.setAttribute('content', savedTheme === 'light' ? '#f2e8df' : '#070103');
       }
     } catch (error) {}
     if (location.protocol === 'file:') {
@@ -108,6 +108,7 @@
           <span id="stop-count" class="pill">—</span>
         </div>
         <p class="hint">Metro, tramvay ve vapur durakları Overpass üzerinden gelir. Durak rotası tarayıcıdaki en kısa yol hesabıdır, sefer saati içermez.</p>
+        <p id="transit-updated" class="update-note">OpenStreetMap · veri bekleniyor</p>
         <div class="row-actions">
           <button type="button" id="nearest-btn" class="ghost" aria-label="En yakın durağı bul">En yakın durak</button>
           <button type="button" id="transit-route-btn" class="ghost" aria-label="Seçili adreslere göre durak rotası hesapla">Durak rotası</button>
