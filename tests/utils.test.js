@@ -154,7 +154,7 @@ describe('ADSB.lol normalizasyonu', () => {
       callsign: 'THY123',
       enlem: 41.12,
       boylam: 28.96,
-      irtifa: 32000,
+      irtifa: 9754,
       hız: 444.48,
       yön: 185
     });
