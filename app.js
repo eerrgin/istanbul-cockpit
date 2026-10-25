@@ -228,7 +228,7 @@ function renderBikeNetwork(collection, freshness = 'GÜNCEL') {
   if (detailNode) detailNode.textContent = `${count('dedicated')} ayrılmış · ${count('lane')} şerit · ${count('shared')} paylaşımlı`;
   if (summaryNode) summaryNode.textContent = features.length
     ? 'Haritada kayıtlı bisiklet altyapısı bulundu. Çizgiler, kayıtlı altyapı türüne göre renklendirilmiştir.'
-    : 'Bu alan için henüz bisiklet altyapısı kaydı bulunamadı.';
+    : 'Bu çevrede etiketlenmiş bisiklet güzergâhı bulunamadı. Haritayı kaydırıp tekrar sorgulayabilirsin.';
   updateFreshness('bike-updated', features.length ? freshness : (freshness === 'CANLI VERİ' ? 'CANLI VERİ · KAYIT YOK' : freshness));
 }
 
@@ -263,6 +263,7 @@ async function fetchBikeNetwork() {
         method: 'POST', headers: { Accept: 'application/json' }, body
       }, 11000, 'Bisiklet haritası');
       if (!data || !Array.isArray(data.elements)) throw new Error('Bisiklet verisi beklenen biçimde değil');
+      if (data.remark && /timed out|run out of memory|runtime error/i.test(data.remark)) throw new Error('Bisiklet sorgusu sunucu sınırına takıldı');
       const collection = bikeNetworkFromOverpass(data);
       return collection;
     } catch (error) {
@@ -465,7 +466,6 @@ function searchPlaces(query) {
     url.searchParams.set('lang', 'tr');
     url.searchParams.set('lat', String(CENTER.lat));
     url.searchParams.set('lon', String(CENTER.lon));
-    url.searchParams.set('location_bias_scale', '0.2');
     const payload = await fetchJson(url.toString(), { headers: { Accept: 'application/json' } }, 12000, 'Adres arama');
     const features = payload && Array.isArray(payload.features) ? payload.features : [];
     return features.flatMap((feature) => {
@@ -529,7 +529,7 @@ function bindSearch(inputId, listId, key) {
     const query = input.value.trim();
     clearTimeout(debounceTimers.get(key));
     list.replaceChildren();
-    if (query.length < 3) return;
+    if (query.length < 2) return;
     debounceTimers.set(key, window.setTimeout(async () => {
       if (token !== searchSeq[key]) return;
       const pending = document.createElement('li');
@@ -545,11 +545,11 @@ function bindSearch(inputId, listId, key) {
         list.replaceChildren();
         const item = document.createElement('li');
         item.className = 'suggest-empty';
-        item.textContent = 'Adres servisi şu an yanıt vermiyor. Birkaç saniye sonra yeniden dene.';
+        item.textContent = 'Arama servisi şu an yanıt vermedi. Birkaç saniye sonra yeniden deneyebilirsin.';
         list.append(item);
         console.warn('Photon address search failed.', error);
       }
-    }, 450));
+    }, 400));
   });
   list.addEventListener('keydown', (event) => {
     const buttons = [...list.querySelectorAll('button')];
@@ -634,7 +634,7 @@ function popup(lngLat, title, detail) {
 }
 
 function addLayers() {
-  map.addSource('bikeways', { type: 'geojson', data: emptyCollection() });
+  map.addSource('bikeways', { type: 'geojson', data: bikewaysCollection });
   map.addLayer({
     id: 'bikeways', type: 'line', source: 'bikeways',
     layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' },
@@ -903,3 +903,4 @@ function bindUi() {
 
 bindUi();
 initMap();
+startLiveData();
