@@ -95,6 +95,7 @@
           </button>
         </div>
         <button type="submit" id="route-btn" class="primary" aria-label="Rota hesapla">Rota hesapla</button>
+        <p class="source-credit route-credit">Rota motoru: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> · Yol verisi © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>
         <article id="summary" class="summary" hidden>
           <h3 id="summary-title">Rota</h3>
           <p id="summary-meta"></p>
@@ -108,7 +109,7 @@
           <span id="stop-count" class="pill">—</span>
         </div>
         <p class="hint">Metro, tramvay ve vapur durakları Overpass üzerinden gelir. Durak rotası tarayıcıdaki en kısa yol hesabıdır, sefer saati içermez.</p>
-        <p id="transit-updated" class="update-note">OpenStreetMap · veri bekleniyor</p>
+        <p id="transit-updated" class="update-note">DURAK VERİSİ BEKLENİYOR</p>
         <div class="row-actions">
           <button type="button" id="nearest-btn" class="ghost" aria-label="En yakın durağı bul">En yakın durak</button>
           <button type="button" id="transit-route-btn" class="ghost" aria-label="Seçili adreslere göre durak rotası hesapla">Durak rotası</button>
@@ -128,7 +129,8 @@
           <p id="weather-temp" class="weather-temp">—</p>
           <p id="weather-desc" class="muted">İstanbul bekleniyor</p>
           <p id="weather-meta" class="muted"></p>
-          <p id="weather-updated" class="update-note">Open-Meteo · veri bekleniyor</p>
+          <p id="weather-updated" class="update-note">HAVA VERİSİ BEKLENİYOR</p>
+          <a class="source-credit" href="https://open-meteo.com/" target="_blank" rel="noopener">Hava verisi: Open-Meteo.com</a>
           <div id="weather-hours" class="hours" aria-label="Saatlik tahmin"></div>
           <div id="weather-days" class="weather-days" aria-label="Dört günlük hava tahmini"></div>
         </article>
@@ -140,7 +142,8 @@
           </div>
           <p id="flight-count" class="flight-count">—</p>
           <p id="flight-nearest" class="muted">İstanbul kutusu sorgulanıyor</p>
-          <p id="flight-updated" class="update-note">OpenSky · veri bekleniyor</p>
+          <p id="flight-updated" class="update-note">RADAR VERİSİ BEKLENİYOR</p>
+          <a class="source-credit" href="https://api.adsb.lol/docs" target="_blank" rel="noopener">Uçuş verisi: ADSB.lol · ODbL</a>
         </article>
       </div>
       <div class="layer-bar" role="toolbar" aria-label="Harita katmanları">
