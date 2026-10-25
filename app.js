@@ -1,5 +1,4 @@
 import {
-  bearing,
   buildStopGraph,
   coordsToLineString,
   dijkstra,
