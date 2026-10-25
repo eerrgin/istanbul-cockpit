@@ -320,12 +320,13 @@ async function fetchOverpass() {
   throw lastError || new Error('Overpass erişilemedi');
 }
 
-async function loadTransit() {
+async function loadTransit(force = false) {
   const key = 'cockpit:transit:v1';
   try {
-    const cached = readCache(storage(), key);
+    const cached = force ? null : readCache(storage(), key);
     if (cached && cached.lines && cached.stops) {
       applyTransit(cached);
+      updateFreshness('transit-updated', 'ÖNBELLEK');
       return;
     }
   } catch (error) {
@@ -335,6 +336,7 @@ async function loadTransit() {
     const data = await fetchOverpass();
     const payload = payloadFromGeo(overpassToGeoJSON(data));
     applyTransit(payload);
+    updateFreshness('transit-updated', 'CANLI VERİ');
     try {
       writeCache(storage(), key, payload, TRANSIT_TTL);
     } catch (error) {
@@ -347,7 +349,20 @@ async function loadTransit() {
   }
 }
 
-function renderWeather(data) {
+function updateFreshness(id, label) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  const time = new Intl.DateTimeFormat('tr-TR', {
+    timeZone: 'Europe/Istanbul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(new Date());
+  node.textContent = `${label} · ${time} TRT`;
+}
+
+function renderWeather(data, freshness = 'GÜNCEL') {
+  updateFreshness('weather-updated', freshness);
   const current = data.current || {};
   const info = wmoToTurkish(current.weather_code);
   const temp = Number(current.temperature_2m);
@@ -405,7 +420,7 @@ async function loadWeather(force) {
     try {
       const cached = readCache(storage(), key);
       if (cached) {
-        renderWeather(cached);
+        renderWeather(cached, 'ÖNBELLEK');
         return;
       }
     } catch (error) {
@@ -421,20 +436,22 @@ async function loadWeather(force) {
     } catch (error) {
       toast('Hava durumu önbelleğe yazılamadı', 'warn');
     }
-    renderWeather(data);
+    renderWeather(data, 'CANLI VERİ');
   } catch (error) {
     let cached = null;
     try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
     if (cached) {
-      renderWeather(cached);
+      renderWeather(cached, 'ÖNBELLEK');
       toast('Hava durumu alınamadı, önbellek kullanıldı', 'warn');
     } else {
+      updateFreshness('weather-updated', 'BAĞLANTI YOK');
       toast(error.message || 'Hava durumu alınamadı');
     }
   }
 }
 
-function renderFlights(flights) {
+function renderFlights(flights, freshness = 'GÜNCEL') {
+  updateFreshness('flight-updated', freshness);
   const features = flights.map((flight) => ({
     type: 'Feature',
     geometry: { type: 'Point', coordinates: [flight.boylam, flight.enlem] },
@@ -474,7 +491,7 @@ async function loadFlights(force) {
     try {
       const cached = readCache(storage(), key);
       if (cached) {
-        renderFlights(cached);
+        renderFlights(cached, 'ÖNBELLEK');
         return;
       }
     } catch (error) {
@@ -490,14 +507,15 @@ async function loadFlights(force) {
     } catch (error) {
       toast('Uçuş önbelleği yazılamadı', 'warn');
     }
-    renderFlights(flights);
+    renderFlights(flights, 'CANLI VERİ');
   } catch (error) {
     let cached = null;
     try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
     if (cached) {
-      renderFlights(cached);
+      renderFlights(cached, 'ÖNBELLEK');
       toast('Uçuş verisi alınamadı, önbellek kullanıldı', 'warn');
     } else {
+      updateFreshness('flight-updated', 'BAĞLANTI YOK');
       toast(error.message || 'Uçuş verisi alınamadı');
     }
   }
@@ -847,6 +865,15 @@ function initMap() {
     loadWeather(false);
     loadFlights(false);
     loadTransit();
+    window.setInterval(() => {
+      if (navigator.onLine) loadWeather(true);
+    }, WEATHER_TTL);
+    window.setInterval(() => {
+      if (navigator.onLine) loadFlights(true);
+    }, FLIGHT_TTL);
+    window.setInterval(() => {
+      if (navigator.onLine) loadTransit(true);
+    }, TRANSIT_TTL);
   });
   map.on('error', (event) => {
     if (!mapReady && !tileWarned) {
