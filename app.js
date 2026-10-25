@@ -34,6 +34,7 @@ const PROFILE_LABEL = { foot: 'Yürüme', bike: 'Bisiklet', driving: 'Araba' };
 
 let map = null;
 let mapReady = false;
+let liveDataStarted = false;
 let profile = 'foot';
 let stopRecords = [];
 let stopGraph = null;
@@ -268,7 +269,7 @@ function applyTransit(payload) {
     stopGraph = { nodes: {}, adj: {} };
     toast('Durak ağı kurulamadı');
   }
-  if (map && map.getSource('transit-lines')) {
+  if (mapReady && map && map.getSource('transit-lines')) {
     map.getSource('transit-lines').setData(payload.lines || emptyCollection());
     map.getSource('transit-stops').setData(payload.stops || emptyCollection());
   }
@@ -419,7 +420,7 @@ function renderWeather(data, freshness = 'GÜNCEL') {
     item.append(hour, value);
     hours.append(item);
   }
-  if (Number.isFinite(temp) && map && window.maplibregl) {
+  if (Number.isFinite(temp) && mapReady && map && window.maplibregl) {
     const text = `${Math.round(temp)}°`;
     if (map.getSource('weather-point')) {
       map.getSource('weather-point').setData({
@@ -489,7 +490,7 @@ function renderFlights(flights, freshness = 'GÜNCEL') {
       country: flight.ülke || ''
     }
   }));
-  if (map && map.getSource('flights')) {
+  if (mapReady && map && map.getSource('flights')) {
     map.getSource('flights').setData({ type: 'FeatureCollection', features });
   }
   document.getElementById('flight-count').textContent = `${flights.length} uçuş`;
@@ -859,10 +860,29 @@ function addLayers() {
   });
 }
 
+function startLiveData() {
+  if (liveDataStarted) return;
+  liveDataStarted = true;
+  loadWeather(false);
+  loadFlights(false);
+  loadTransit();
+  window.setInterval(() => {
+    if (navigator.onLine) loadWeather(true);
+  }, WEATHER_TTL);
+  window.setInterval(() => {
+    if (navigator.onLine) loadFlights(true);
+  }, 10 * 60 * 1000);
+  window.setInterval(() => {
+    if (navigator.onLine) loadTransit(true);
+  }, 30 * 60 * 1000);
+}
+
 function initMap() {
   if (!window.maplibregl) {
-    toast('Harita kütüphanesi yüklenemedi');
+    document.querySelector('.map-wrap')?.classList.add('map-unavailable');
+    toast('Harita kütüphanesi yüklenemedi; açık veri kartları çalışmaya devam ediyor', 'warn');
     hideLoading();
+    startLiveData();
     return;
   }
   map = new maplibregl.Map({
@@ -886,27 +906,19 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-left');
   map.on('load', () => {
     mapReady = true;
+    document.querySelector('.map-wrap')?.classList.remove('map-unavailable');
     addLayers();
     hideLoading();
     map.resize();
-    loadWeather(false);
-    loadFlights(false);
-    loadTransit();
-    window.setInterval(() => {
-      if (navigator.onLine) loadWeather(true);
-    }, WEATHER_TTL);
-    window.setInterval(() => {
-      if (navigator.onLine) loadFlights(true);
-    }, 10 * 60 * 1000);
-    window.setInterval(() => {
-      if (navigator.onLine) loadTransit(true);
-    }, 30 * 60 * 1000);
+    startLiveData();
   });
   map.on('error', (event) => {
     if (!mapReady && !tileWarned) {
       tileWarned = true;
-      toast('Harita yüklenirken sorun oluştu');
+      document.querySelector('.map-wrap')?.classList.add('map-unavailable');
+      toast('Harita yüklenirken sorun oluştu; veri kartları yükleniyor', 'warn');
       hideLoading();
+      startLiveData();
       return;
     }
     if (event && event.tile && !tileWarned) {
@@ -916,8 +928,10 @@ function initMap() {
   });
   setTimeout(() => {
     if (!mapReady) {
+      document.querySelector('.map-wrap')?.classList.add('map-unavailable');
       hideLoading();
-      toast('Harita beklenenden uzun sürdü', 'warn');
+      toast('Harita geç yanıt veriyor; veri kartları yükleniyor', 'warn');
+      startLiveData();
     }
   }, 20000);
   window.addEventListener('resize', () => { if (map) map.resize(); });
@@ -984,20 +998,8 @@ function bindUi() {
   });
   document.getElementById('nearest-btn').addEventListener('click', locateNearest);
   document.getElementById('transit-route-btn').addEventListener('click', calculateTransitRoute);
-  document.getElementById('weather-refresh').addEventListener('click', () => {
-    if (!mapReady) {
-      toast('Harita henüz hazır değil', 'warn');
-      return;
-    }
-    loadWeather(true);
-  });
-  document.getElementById('flight-refresh').addEventListener('click', () => {
-    if (!mapReady) {
-      toast('Harita henüz hazır değil', 'warn');
-      return;
-    }
-    loadFlights(true);
-  });
+  document.getElementById('weather-refresh').addEventListener('click', () => loadWeather(true));
+  document.getElementById('flight-refresh').addEventListener('click', () => loadFlights(true));
   bindSearch('origin-input', 'origin-suggest', 'origin');
   bindSearch('destination-input', 'destination-suggest', 'destination');
   document.addEventListener('click', (event) => {
