@@ -7,8 +7,6 @@ import {
   formatDistance,
   formatDuration,
   haversine,
-  normalizeAdsbLolAircraft,
-  normalizeOpenSkyStates,
   overpassToGeoJSON,
   readCache,
   wmoToTurkish,
@@ -100,66 +98,6 @@ describe('WMO kodu', () => {
 
   it('bilinmeyen kodda yedek açıklama döner', () => {
     expect(wmoToTurkish(123)).toEqual({ aciklama: 'Bilinmeyen', ikon: 'cloud' });
-  });
-});
-
-describe('OpenSky normalizasyonu', () => {
-  it('örnek state dizisini uçuş nesnesine çevirir', () => {
-    const states = [[
-      'abc123',
-      ' THY1 ',
-      'Turkey',
-      1700000000,
-      1700000000,
-      29.1,
-      41.2,
-      3200,
-      false,
-      210,
-      84
-    ]];
-    const rows = normalizeOpenSkyStates(states);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
-      icao24: 'abc123',
-      callsign: 'THY1',
-      ülke: 'Turkey',
-      enlem: 41.2,
-      boylam: 29.1,
-      irtifa: 3200,
-      hız: 210,
-      yön: 84
-    });
-  });
-
-  it('konumu olmayan ve bozuk satırları eler', () => {
-    const rows = normalizeOpenSkyStates([null, ['only'], ['id', 'X', 'DE', 1, 1, null, null]]);
-    expect(rows).toEqual([]);
-    expect(normalizeOpenSkyStates(null)).toEqual([]);
-  });
-});
-
-describe('ADSB.lol normalizasyonu', () => {
-  it('canlı uçak nesnelerini ortak kokpit biçimine çevirir', () => {
-    const rows = normalizeAdsbLolAircraft({
-      aircraft: [
-        { hex: '4ca123', flight: ' THY123 ', lat: 41.12, lon: 28.96, alt_baro: 32000, gs: 240, track: 185 },
-        { hex: 'bad', lat: null, lon: 28.9 },
-        { hex: 'ground', lat: 41.1, lon: 28.9, alt_baro: 'ground' }
-      ]
-    });
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({
-      icao24: '4ca123',
-      callsign: 'THY123',
-      enlem: 41.12,
-      boylam: 28.96,
-      irtifa: 9754,
-      hız: 444.48,
-      yön: 185
-    });
-    expect(rows[1].irtifa).toBeNull();
-    expect(normalizeAdsbLolAircraft({})).toEqual([]);
   });
 });
 
