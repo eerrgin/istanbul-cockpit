@@ -172,6 +172,32 @@ export function wmoToTurkish(code) {
   return { aciklama: hit[0], ikon: hit[1] };
 }
 
+export function normalizeAdsbLolAircraft(payload) {
+  const aircraft = payload && Array.isArray(payload.aircraft) ? payload.aircraft : [];
+  return aircraft.flatMap((plane) => {
+    if (!plane || typeof plane !== 'object') return [];
+    const enlem = Number(plane.lat);
+    const boylam = Number(plane.lon);
+    if (!Number.isFinite(enlem) || !Number.isFinite(boylam) ||
+        enlem < -90 || enlem > 90 || boylam < -180 || boylam > 180) return [];
+    const baro = plane.alt_baro;
+    const geom = plane.alt_geom;
+    const irtifa = typeof baro === 'number' ? baro : (typeof geom === 'number' ? geom : null);
+    const flight = typeof plane.flight === 'string' ? plane.flight.trim() : '';
+    const callsign = flight || (typeof plane.r === 'string' ? plane.r.trim() : '');
+    return [{
+      icao24: typeof plane.hex === 'string' ? plane.hex : '',
+      callsign,
+      ülke: '',
+      enlem,
+      boylam,
+      irtifa,
+      hız: typeof plane.gs === 'number' ? plane.gs * 1.852 : null,
+      yön: typeof plane.track === 'number' ? plane.track : null
+    }];
+  });
+}
+
 export function normalizeOpenSkyStates(states) {
   if (!Array.isArray(states)) return [];
   const flights = [];
@@ -227,12 +253,26 @@ export function overpassToGeoJSON(data) {
       });
       routes.push({ id: String(rel.id), name, mode, coordinates });
     }
-    const preferred = members.filter((member) => member.type === 'node' && (member.role === 'stop' || member.role === 'stop_entry_only' || member.role === 'stop_exit_only'));
-    const platforms = members.filter((member) => member.type === 'node' && member.role === 'platform');
+    const preferred = members.filter((member) => member.role === 'stop' || member.role === 'stop_entry_only' || member.role === 'stop_exit_only');
+    const platforms = members.filter((member) => member.role === 'platform');
     const chosen = preferred.length ? preferred : platforms;
     let sequence = 0;
     for (const member of chosen) {
-      const stop = stopFromMember(member, nodeById, name);
+      let stop = null;
+      if (member.type === 'node') {
+        stop = stopFromMember(member, nodeById, name);
+      } else if (member.type === 'way') {
+        const coords = wayCoords(member, wayById, nodeById);
+        if (coords.length) {
+          const center = coords.reduce((sum, point) => [sum[0] + point[0], sum[1] + point[1]], [0, 0]);
+          stop = {
+            ref: member.ref,
+            lon: center[0] / coords.length,
+            lat: center[1] / coords.length,
+            name: (member.tags && (member.tags.name || member.tags.ref)) || (wayById.get(member.ref)?.tags?.name) || `${name} · platform`
+          };
+        }
+      }
       if (!stop) continue;
       stopFeatures.push({
         type: 'Feature',
