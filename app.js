@@ -18,7 +18,6 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter'
 ];
-const BIKE_QUERY = '[out:json][timeout:25];(way["highway"="cycleway"](40.80,28.40,41.35,29.50);way["cycleway"~"^(lane|track|shared_lane|share_busway|opposite_lane|opposite_track)$"](40.80,28.40,41.35,29.50);way["cycleway:left"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["cycleway:right"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["cycleway:both"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["bicycle"="designated"]["highway"~"^(path|footway|track)$"](40.80,28.40,41.35,29.50););out tags geom;';
 const LAYER_IDS = {
   bikeways: 'bikeways',
   weather: 'weather-point'
@@ -38,6 +37,10 @@ const searchSeq = { origin: 0, destination: 0 };
 const debounceTimers = new Map();
 const markers = { origin: null, destination: null };
 let notesTimer = null;
+let bikeLoading = false;
+let bikeReloadQueued = false;
+let bikeReloadTimer = null;
+let lastBikeQueryCenter = null;
 
 function emptyCollection() {
   return { type: 'FeatureCollection', features: [] };
@@ -221,12 +224,33 @@ function renderBikeNetwork(collection, freshness = 'GÜNCEL') {
   const countNode = document.getElementById('bike-count');
   const detailNode = document.getElementById('bike-detail');
   const summaryNode = document.getElementById('bike-summary');
-  if (countNode) countNode.textContent = features.length ? `${features.length.toLocaleString('tr-TR')} bölüm` : 'Veri bekleniyor';
+  if (countNode) countNode.textContent = `${features.length.toLocaleString('tr-TR')} bölüm`;
   if (detailNode) detailNode.textContent = `${count('dedicated')} ayrılmış · ${count('lane')} şerit · ${count('shared')} paylaşımlı`;
   if (summaryNode) summaryNode.textContent = features.length
     ? 'Haritada kayıtlı bisiklet altyapısı bulundu. Çizgiler, kayıtlı altyapı türüne göre renklendirilmiştir.'
     : 'Bu alan için henüz bisiklet altyapısı kaydı bulunamadı.';
-  updateFreshness('bike-updated', freshness);
+  updateFreshness('bike-updated', features.length ? freshness : (freshness === 'CANLI VERİ' ? 'CANLI VERİ · KAYIT YOK' : freshness));
+}
+
+function bikeQueryForCurrentArea() {
+  const center = map && map.getCenter ? map.getCenter() : { lat: CENTER.lat, lng: CENTER.lon };
+  const lon = Number(center.lng ?? center.lon ?? CENTER.lon);
+  const lat = Number(center.lat ?? CENTER.lat);
+  // A compact neighborhood window prevents a city-wide geometry request from timing out.
+  const west = Math.max(-180, lon - 0.095);
+  const east = Math.min(180, lon + 0.095);
+  const south = Math.max(-90, lat - 0.065);
+  const north = Math.min(90, lat + 0.065);
+  const box = `(${south.toFixed(5)},${west.toFixed(5)},${north.toFixed(5)},${east.toFixed(5)})`;
+  lastBikeQueryCenter = { lat, lon, zoom: map && map.getZoom ? map.getZoom() : 11 };
+  return `[out:json][timeout:15];(
+    way["highway"="cycleway"]${box};
+    way["cycleway"~"^(lane|track|shared_lane|share_busway|opposite_lane|opposite_track)$"]${box};
+    way["cycleway:left"~"^(lane|track|shared_lane|share_busway)$"]${box};
+    way["cycleway:right"~"^(lane|track|shared_lane|share_busway)$"]${box};
+    way["cycleway:both"~"^(lane|track|shared_lane|share_busway)$"]${box};
+    way["bicycle"="designated"]["highway"~"^(path|footway|track)$"]${box};
+  );out tags geom;`;
 }
 
 async function fetchBikeNetwork() {
@@ -234,14 +258,13 @@ async function fetchBikeNetwork() {
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
       const body = new URLSearchParams();
-      body.set('data', BIKE_QUERY);
+      body.set('data', bikeQueryForCurrentArea());
       const data = await fetchJson(endpoint, {
         method: 'POST', headers: { Accept: 'application/json' }, body
-      }, 28000, 'Bisiklet haritası');
+      }, 11000, 'Bisiklet haritası');
       if (!data || !Array.isArray(data.elements)) throw new Error('Bisiklet verisi beklenen biçimde değil');
       const collection = bikeNetworkFromOverpass(data);
-      if (collection.features.length) return collection;
-      lastError = new Error('Bu sunucuda eşleşen bisiklet altyapısı kaydı bulunamadı');
+      return collection;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Bisiklet verisine ulaşılamadı');
     }
@@ -250,34 +273,51 @@ async function fetchBikeNetwork() {
 }
 
 async function loadBikeNetwork(force = false) {
-  const key = 'ergin-lab:bikeways:v1';
-  if (!force) {
-    try {
-      const cached = readCache(storage(), key);
-      if (cached && cached.type === 'FeatureCollection' && Array.isArray(cached.features) && cached.features.length) {
-        renderBikeNetwork(cached, 'ÖNBELLEK');
-        return;
-      }
-    } catch (error) { console.warn('Bike infrastructure cache could not be read.', error); }
+  if (bikeLoading) {
+    if (force) bikeReloadQueued = true;
+    return;
   }
+  bikeLoading = true;
+  const key = 'ergin-lab:bikeways:v2';
+  const countNode = document.getElementById('bike-count');
+  const summaryNode = document.getElementById('bike-summary');
+  updateFreshness('bike-updated', 'SORGULANIYOR');
+  if (countNode) countNode.textContent = '…';
+  if (summaryNode) summaryNode.textContent = 'Harita merkezinin çevresindeki bisiklet altyapısı aranıyor.';
   try {
+    if (!force) {
+      try {
+        const cached = readCache(storage(), key);
+        if (cached && cached.type === 'FeatureCollection' && Array.isArray(cached.features) && cached.features.length) {
+          renderBikeNetwork(cached, 'ÖNBELLEK');
+          return;
+        }
+      } catch (error) { console.warn('Bike infrastructure cache could not be read.', error); }
+    }
     const collection = await fetchBikeNetwork();
     renderBikeNetwork(collection, 'CANLI VERİ');
     try { writeCache(storage(), key, collection, BIKE_TTL); }
     catch (error) { console.warn('Bike infrastructure cache could not be written.', error); }
+    if (!collection.features.length) {
+      if (summaryNode) summaryNode.textContent = 'Bu çevrede haritada bisiklet altyapısı olarak işaretlenmiş çizgi bulunamadı. Haritayı sahil hattına veya başka bir bölgeye taşıyıp yenileyebilirsin.';
+    }
   } catch (error) {
     let cached = null;
     try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
     if (cached && cached.type === 'FeatureCollection' && Array.isArray(cached.features)) {
       renderBikeNetwork(cached, 'ÖNBELLEK');
-      if (force) toast('Canlı bisiklet verisi geçici olarak alınamadı; kayıtlı harita korunuyor.', 'warn');
+      if (summaryNode) summaryNode.textContent = 'Canlı istek başarısız oldu; son kayıtlı bisiklet verisi gösteriliyor.';
     } else {
       updateFreshness('bike-updated', 'BAĞLANTI YOK');
-      const countNode = document.getElementById('bike-count');
-      const summaryNode = document.getElementById('bike-summary');
       if (countNode) countNode.textContent = '—';
-      if (summaryNode) summaryNode.textContent = 'Bisiklet verisi şu an alınamıyor. Harita ve rota planlayıcısı çalışmaya devam eder.';
+      if (summaryNode) summaryNode.textContent = 'Açık harita servisi şu an yanıt vermedi. Harita görünümünü daraltıp yeniden dene.';
       console.warn('All bicycle infrastructure feeds failed.', error);
+    }
+  } finally {
+    bikeLoading = false;
+    if (bikeReloadQueued) {
+      bikeReloadQueued = false;
+      window.setTimeout(() => loadBikeNetwork(true), 500);
     }
   }
 }
@@ -425,7 +465,7 @@ function searchPlaces(query) {
     url.searchParams.set('lang', 'tr');
     url.searchParams.set('lat', String(CENTER.lat));
     url.searchParams.set('lon', String(CENTER.lon));
-    url.searchParams.set('bbox', '28.40,40.80,29.50,41.35');
+    url.searchParams.set('location_bias_scale', '0.2');
     const payload = await fetchJson(url.toString(), { headers: { Accept: 'application/json' } }, 12000, 'Adres arama');
     const features = payload && Array.isArray(payload.features) ? payload.features : [];
     return features.flatMap((feature) => {
@@ -472,6 +512,7 @@ function renderSuggestions(input, list, results) {
       input.dataset.lon = String(lon);
       list.replaceChildren();
       dropPin(input.id === 'origin-input' ? 'origin' : 'destination', lon, lat);
+      if (map) map.flyTo({ center: [lon, lat], zoom: 14, essential: true });
     });
     item.append(button);
     list.append(item);
@@ -482,26 +523,33 @@ function bindSearch(inputId, listId, key) {
   const input = document.getElementById(inputId);
   const list = document.getElementById(listId);
   input.addEventListener('input', () => {
+    const token = ++searchSeq[key];
     delete input.dataset.lat;
     delete input.dataset.lon;
     const query = input.value.trim();
     clearTimeout(debounceTimers.get(key));
-    if (query.length < 3) {
-      list.replaceChildren();
-      return;
-    }
-    debounceTimers.set(key, setTimeout(async () => {
-      const token = searchSeq[key] + 1;
-      searchSeq[key] = token;
+    list.replaceChildren();
+    if (query.length < 3) return;
+    debounceTimers.set(key, window.setTimeout(async () => {
+      if (token !== searchSeq[key]) return;
+      const pending = document.createElement('li');
+      pending.className = 'suggest-empty';
+      pending.textContent = 'Adres aranıyor…';
+      list.append(pending);
       try {
         const results = await searchPlaces(query);
         if (token !== searchSeq[key]) return;
         renderSuggestions(input, list, results);
       } catch (error) {
         if (token !== searchSeq[key]) return;
-        toast(error.message || 'Adres araması başarısız');
+        list.replaceChildren();
+        const item = document.createElement('li');
+        item.className = 'suggest-empty';
+        item.textContent = 'Adres servisi şu an yanıt vermiyor. Birkaç saniye sonra yeniden dene.';
+        list.append(item);
+        console.warn('Photon address search failed.', error);
       }
-    }, 650));
+    }, 450));
   });
   list.addEventListener('keydown', (event) => {
     const buttons = [...list.querySelectorAll('button')];
@@ -663,6 +711,18 @@ function initMap() {
     }
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-left');
+  map.on('moveend', () => {
+    if (!mapReady || !lastBikeQueryCenter || bikeReloadTimer) return;
+    const center = map.getCenter();
+    const moved = Math.abs(center.lng - lastBikeQueryCenter.lon) > 0.045 ||
+      Math.abs(center.lat - lastBikeQueryCenter.lat) > 0.035 ||
+      Math.abs(map.getZoom() - lastBikeQueryCenter.zoom) > 1.25;
+    if (!moved) return;
+    bikeReloadTimer = window.setTimeout(() => {
+      bikeReloadTimer = null;
+      loadBikeNetwork(true);
+    }, 900);
+  });
   map.on('load', () => {
     mapReady = true;
     document.querySelector('.map-wrap')?.classList.remove('map-unavailable');
