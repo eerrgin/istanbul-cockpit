@@ -172,57 +172,6 @@ export function wmoToTurkish(code) {
   return { aciklama: hit[0], ikon: hit[1] };
 }
 
-export function normalizeAdsbLolAircraft(payload) {
-  const aircraft = payload && Array.isArray(payload.aircraft) ? payload.aircraft : [];
-  return aircraft.flatMap((plane) => {
-    if (!plane || typeof plane !== 'object') return [];
-    if (typeof plane.lat !== 'number' || typeof plane.lon !== 'number') return [];
-    const enlem = plane.lat;
-    const boylam = plane.lon;
-    if (!Number.isFinite(enlem) || !Number.isFinite(boylam) ||
-        enlem < -90 || enlem > 90 || boylam < -180 || boylam > 180) return [];
-    const baro = plane.alt_baro;
-    const geom = plane.alt_geom;
-    const altitudeFeet = typeof baro === 'number' ? baro : (typeof geom === 'number' ? geom : null);
-    const irtifa = altitudeFeet == null ? null : Math.round(altitudeFeet * 0.3048);
-    const flight = typeof plane.flight === 'string' ? plane.flight.trim() : '';
-    const callsign = flight || (typeof plane.r === 'string' ? plane.r.trim() : '');
-    return [{
-      icao24: typeof plane.hex === 'string' ? plane.hex : '',
-      callsign,
-      ülke: '',
-      enlem,
-      boylam,
-      irtifa,
-      hız: typeof plane.gs === 'number' ? Math.round(plane.gs * 1.852 * 100) / 100 : null,
-      yön: typeof plane.track === 'number' ? plane.track : null
-    }];
-  });
-}
-
-export function normalizeOpenSkyStates(states) {
-  if (!Array.isArray(states)) return [];
-  const flights = [];
-  for (const row of states) {
-    if (!Array.isArray(row)) continue;
-    const enlem = row[6];
-    const boylam = row[5];
-    if (typeof enlem !== 'number' || typeof boylam !== 'number') continue;
-    const irtifa = typeof row[7] === 'number' ? row[7] : (typeof row[13] === 'number' ? row[13] : null);
-    flights.push({
-      icao24: row[0] || '',
-      callsign: typeof row[1] === 'string' ? row[1].trim() : '',
-      ülke: row[2] || '',
-      enlem,
-      boylam,
-      irtifa,
-      hız: typeof row[9] === 'number' ? row[9] : null,
-      yön: typeof row[10] === 'number' ? row[10] : null
-    });
-  }
-  return flights;
-}
-
 export function overpassToGeoJSON(data) {
   const elements = data && Array.isArray(data.elements) ? data.elements : [];
   const nodeById = new Map();
