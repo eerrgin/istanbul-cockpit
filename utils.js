@@ -105,16 +105,7 @@ export function haversine(lat1, lon1, lat2, lon2) {
   return 2 * EARTH_RADIUS * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function bearing(lat1, lon1, lat2, lon2) {
-  const φ1 = toRadians(lat1);
-  const φ2 = toRadians(lat2);
-  const Δλ = toRadians(lon2 - lon1);
-  const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-}
-
-export function formatDuration(seconds) {
+(seconds) {
   const total = Math.max(0, Math.round(Number(seconds) || 0));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
