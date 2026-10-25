@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="İstanbul için tamamen açık ve yabancı kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava durumu ve uçuş radarı kokpiti.">
+  <meta name="theme-color" content="#081018">
+  <title>İstanbul Açık Ulaşım ve Hava Kokpiti</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='10' fill='%23e2b15a'/%3E%3Ccircle cx='18' cy='18' r='8' fill='none' stroke='%231c1408' stroke-width='1.6'/%3E%3Cpath d='M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z' fill='%231c1408'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('istanbul-cockpit-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        var themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) themeMeta.setAttribute('content', savedTheme === 'light' ? '#f3f6f8' : '#081018');
+      }
+    } catch (error) {}
+    if (location.protocol === 'file:') {
+      document.addEventListener('DOMContentLoaded', function () {
+        var box = document.getElementById('toasts');
+        var loading = document.getElementById('loading');
+        if (loading) loading.hidden = true;
+        if (!box) return;
+        var el = document.createElement('div');
+        el.className = 'toast toast-error';
+        el.setAttribute('role', 'alert');
+        el.textContent = 'Bu kokpit dosya üzerinden modül yükleyemez. Klasörde python3 -m http.server 8080 çalıştırın.';
+        box.appendChild(el);
+      });
+    }
+  </script>
+</head>
+<body>
+  <div id="offline-banner" class="offline-banner" hidden>Çevrimdışı moddasınız. Kayıtlı veriler gösteriliyor.</div>
+  <header class="header">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 36 36" aria-hidden="true">
+        <rect width="36" height="36" rx="10" fill="#e2b15a"></rect>
+        <circle cx="18" cy="18" r="8" fill="none" stroke="#1c1408" stroke-width="1.6"></circle>
+        <path d="M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z" fill="#1c1408"></path>
+        <circle cx="18" cy="18" r="1.5" fill="#1c1408"></circle>
+      </svg>
+      <div class="brand-copy">
+        <p class="kicker">Açık veri</p>
+        <h1>İstanbul Açık Ulaşım ve Hava Kokpiti</h1>
+      </div>
+    </div>
+    <div class="header-actions">
+      <p id="net-status" class="status" role="status" data-state="on">Çevrimiçi</p>
+      <button type="button" id="theme-toggle" class="icon-btn" aria-label="Tema değiştir">
+        <span id="theme-icon" class="icon-slot"></span>
+      </button>
+    </div>
+  </header>
+  <main class="layout">
+    <aside class="panel">
+      <form id="route-form" class="card" novalidate>
+        <div class="card-head">
+          <span class="icon-slot" id="route-icon"></span>
+          <h2>Rota planlayıcı</h2>
+        </div>
+        <label class="field" for="origin-input">
+          <span>Başlangıç</span>
+          <input id="origin-input" name="origin" type="text" autocomplete="off" spellcheck="false" placeholder="Adres veya yer adı" aria-label="Başlangıç adresi" aria-autocomplete="list" aria-controls="origin-suggest">
+          <ul id="origin-suggest" class="suggest" role="listbox" aria-label="Başlangıç önerileri"></ul>
+        </label>
+        <label class="field" for="destination-input">
+          <span>Bitiş</span>
+          <input id="destination-input" name="destination" type="text" autocomplete="off" spellcheck="false" placeholder="Adres veya yer adı" aria-label="Bitiş adresi" aria-autocomplete="list" aria-controls="destination-suggest">
+          <ul id="destination-suggest" class="suggest" role="listbox" aria-label="Bitiş önerileri"></ul>
+        </label>
+        <div class="modes" role="group" aria-label="Ulaşım modu">
+          <button type="button" class="mode-btn" data-mode="foot" aria-pressed="true" aria-label="Yürüme">
+            <span class="icon-slot" id="mode-foot"></span>
+            Yürüme
+          </button>
+          <button type="button" class="mode-btn" data-mode="bike" aria-pressed="false" aria-label="Bisiklet">
+            <span class="icon-slot" id="mode-bike"></span>
+            Bisiklet
+          </button>
+          <button type="button" class="mode-btn" data-mode="driving" aria-pressed="false" aria-label="Araba">
+            <span class="icon-slot" id="mode-car"></span>
+            Araba
+          </button>
+        </div>
+        <button type="submit" id="route-btn" class="primary" aria-label="Rota hesapla">Rota hesapla</button>
+        <article id="summary" class="summary" hidden>
+          <h3 id="summary-title">Rota</h3>
+          <p id="summary-meta"></p>
+          <ol id="steps" aria-label="Rota adımları"></ol>
+        </article>
+      </form>
+      <section class="card" aria-labelledby="stops-title">
+        <div class="card-head">
+          <span class="icon-slot" id="stop-icon"></span>
+          <h2 id="stops-title">Toplu taşıma durakları</h2>
+          <span id="stop-count" class="pill">—</span>
+        </div>
+        <p class="hint">Metro, tramvay ve vapur durakları Overpass üzerinden gelir. Durak rotası tarayıcıdaki en kısa yol hesabıdır, sefer saati içermez.</p>
+        <div class="row-actions">
+          <button type="button" id="nearest-btn" class="ghost" aria-label="En yakın durağı bul">En yakın durak</button>
+          <button type="button" id="transit-route-btn" class="ghost" aria-label="Seçili adreslere göre durak rotası hesapla">Durak rotası</button>
+        </div>
+        <ul id="stop-list" class="stop-list" aria-label="Durak listesi"></ul>
+      </section>
+    </aside>
+    <section class="map-wrap" aria-label="İstanbul haritası">
+      <div id="map"></div>
+      <div class="float-cards">
+        <article id="weather-card" class="info-card" aria-live="polite">
+          <div class="card-head">
+            <span class="icon-slot" id="weather-icon"></span>
+            <h2>Hava durumu</h2>
+            <button type="button" id="weather-refresh" class="text-btn" aria-label="Hava durumunu yenile">Yenile</button>
+          </div>
+          <p id="weather-temp" class="weather-temp">—</p>
+          <p id="weather-desc" class="muted">İstanbul bekleniyor</p>
+          <p id="weather-meta" class="muted"></p>
+          <div id="weather-hours" class="hours" aria-label="Saatlik tahmin"></div>
+        </article>
+        <article id="flight-card" class="info-card" aria-live="polite">
+          <div class="card-head">
+            <span class="icon-slot" id="flight-icon"></span>
+            <h2>Uçuş radarı</h2>
+            <button type="button" id="flight-refresh" class="text-btn" aria-label="Uçuşları yenile">Yenile</button>
+          </div>
+          <p id="flight-count" class="flight-count">—</p>
+          <p id="flight-nearest" class="muted">İstanbul kutusu sorgulanıyor</p>
+        </article>
+      </div>
+      <div class="layer-bar" role="toolbar" aria-label="Harita katmanları">
+        <button type="button" class="layer-btn" data-layer="lines" aria-pressed="true" aria-label="Toplu taşıma hatlarını göster veya gizle">Hatlar</button>
+        <button type="button" class="layer-btn" data-layer="stops" aria-pressed="true" aria-label="Durakları göster veya gizle">Duraklar</button>
+        <button type="button" class="layer-btn" data-layer="flights" aria-pressed="true" aria-label="Uçuşları göster veya gizle">Uçuşlar</button>
+        <button type="button" class="layer-btn" data-layer="weather" aria-pressed="true" aria-label="Hava durumu katmanını göster veya gizle">Hava</button>
+      </div>
+    </section>
+  </main>
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Kokpit hazırlanıyor</p>
+  </div>
+  <div id="toasts" class="toasts" aria-live="assertive"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

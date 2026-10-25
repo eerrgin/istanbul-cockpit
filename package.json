@@ -1,0 +1,16 @@
+{
+  "name": "istanbul-cockpit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "İstanbul için açık kaynaklı ulaşım, hava durumu ve uçuş kokpiti",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "3.2.7",
+    "vitest": "3.2.7"
+  }
+}
