@@ -1,4 +1,4 @@
-const VERSION = 'v10-ergin-lab-cycleways';
+const VERSION = 'v11-ergin-lab-search-fix';
 const STATIC_CACHE = `istanbul-cockpit-static-${VERSION}`;
 const API_CACHE = `istanbul-cockpit-api-${VERSION}`;
 const ASSETS = ['./index.html', './style.css', './app.js', './utils.js', './manifest.json'];
