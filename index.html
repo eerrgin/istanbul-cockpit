@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="İstanbul için tamamen açık ve yabancı kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava durumu ve ulaşım kokpiti.">
+  <meta name="description" content="Ergin Lab deneysel saha projesi: İstanbul bisiklet altyapısı, hava durumu, rota deneyi ve yerel not defteri.">
   <meta name="theme-color" content="#070103">
-  <title>İstanbul Kokpiti — Gece Vardiyası / Açık Veri</title>
+  <title>Ergin Lab — İstanbul Saha Deneyi 01</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='10' fill='%23260b10'/%3E%3Ccircle cx='18' cy='18' r='8' fill='none' stroke='%23ff4136' stroke-width='1.6'/%3E%3Cpath d='M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z' fill='%23ff4136'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&amp;family=DM+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=20261025-night-signal2">
+  <link rel="stylesheet" href="style.css?v=20261025-ergin-lab01">
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script>
@@ -52,8 +52,8 @@
         <circle cx="18" cy="18" r="1.5" fill="#ff4136"></circle>
       </svg>
       <div class="brand-copy">
-        <p class="kicker">Açık veri</p>
-        <h1>İstanbul Açık Ulaşım ve Hava Kokpiti</h1>
+        <p class="kicker">ERGIN LAB · SAHA DENEYİ 01</p>
+        <h1>İstanbul / Bisiklet &amp; Hava</h1>
       </div>
     </div>
     <div class="header-actions">
@@ -102,19 +102,54 @@
           <ol id="steps" aria-label="Rota adımları"></ol>
         </article>
       </form>
-      <section class="card" aria-labelledby="stops-title">
+      <section class="card bike-card" aria-labelledby="bike-title">
         <div class="card-head">
-          <span class="icon-slot" id="stop-icon"></span>
-          <h2 id="stops-title">Toplu taşıma durakları</h2>
-          <span id="stop-count" class="pill">—</span>
+          <span class="icon-slot" id="bike-icon"></span>
+          <h2 id="bike-title">Bisiklet altyapısı</h2>
+          <span class="experiment-tag">DENEYSEL</span>
         </div>
-        <p class="hint">Metro, tramvay ve vapur durakları Overpass üzerinden gelir. Durak rotası tarayıcıdaki en kısa yol hesabıdır, sefer saati içermez.</p>
-        <p id="transit-updated" class="update-note">DURAK VERİSİ BEKLENİYOR</p>
-        <div class="row-actions">
-          <button type="button" id="nearest-btn" class="ghost" aria-label="En yakın durağı bul">En yakın durak</button>
-          <button type="button" id="transit-route-btn" class="ghost" aria-label="Seçili adreslere göre durak rotası hesapla">Durak rotası</button>
+        <p id="bike-summary" class="hint">İstanbul için açık harita kayıtlarında işaretlenmiş bisiklet güzergâhları aranıyor.</p>
+        <div class="bike-metrics">
+          <strong id="bike-count">—</strong>
+          <span id="bike-detail">Ayrılmış yollar · şeritler · paylaşımlı güzergâhlar</span>
         </div>
-        <ul id="stop-list" class="stop-list" aria-label="Durak listesi"></ul>
+        <p id="bike-updated" class="update-note">BİSİKLET VERİSİ BEKLENİYOR</p>
+        <label class="experiment-toggle" for="bike-separated-toggle">
+          <input id="bike-separated-toggle" type="checkbox">
+          <span><strong>Deney 01</strong> · Yalnızca ayrılmış bisiklet yolları</span>
+        </label>
+        <div class="bike-legend" aria-label="Harita renkleri">
+          <span><i class="legend-dedicated"></i> Ayrılmış</span>
+          <span><i class="legend-lane"></i> Şerit</span>
+          <span><i class="legend-shared"></i> Paylaşımlı</span>
+        </div>
+        <button type="button" id="bike-refresh" class="ghost" aria-label="Bisiklet altyapısı verisini yenile">Bisiklet verisini yenile</button>
+        <p class="hint">Bu bir altyapı deneyi, navigasyon güvenliği garantisi değildir. Harita kayıtları eksik veya güncelliğini yitirmiş olabilir; renkler kaydedilmiş etiketleri gösterir.</p>
+        <a class="source-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Açık harita verisi lisansı</a>
+      </section>
+      <section class="card notes-card" aria-labelledby="notes-title">
+        <div class="card-head">
+          <span class="icon-slot" id="notes-icon"></span>
+          <div class="notes-title-wrap">
+            <p class="kicker">ERGIN LAB · FIELD LOG</p>
+            <h2 id="notes-title">Saha not defteri</h2>
+          </div>
+          <span class="experiment-tag">YEREL</span>
+        </div>
+        <p class="hint">Gözlemlerini, yol sorunlarını veya yeni deney fikirlerini yaz. Notlar yalnızca bu tarayıcıda saklanır; sunucuya gönderilmez.</p>
+        <label class="field notes-field" for="lab-notes">
+          <span>Notlarım</span>
+          <textarea id="lab-notes" maxlength="6000" rows="5" placeholder="Örn. Sahil hattında ayrılmış yol nerede başlıyor? Zemin, aydınlatma, kesintiler…"></textarea>
+        </label>
+        <div class="notes-status-row">
+          <span id="notes-status" class="update-note">Notlar bu cihazda saklanır</span>
+          <span id="notes-count" class="notes-count">0 / 6000 karakter</span>
+        </div>
+        <div class="notes-actions">
+          <button type="button" id="notes-save" class="primary">Kaydet</button>
+          <button type="button" id="notes-export" class="ghost">Dışa aktar</button>
+          <button type="button" id="notes-clear" class="ghost">Temizle</button>
+        </div>
       </section>
     </aside>
     <section class="map-wrap" aria-label="İstanbul haritası">
@@ -135,10 +170,9 @@
           <div id="weather-days" class="weather-days" aria-label="Dört günlük hava tahmini"></div>
         </article>
       </div>
-      <div class="layer-bar" role="toolbar" aria-label="Harita katmanları">
-        <button type="button" class="layer-btn" data-layer="lines" aria-pressed="true" aria-label="Toplu taşıma hatlarını göster veya gizle">Hatlar</button>
-        <button type="button" class="layer-btn" data-layer="stops" aria-pressed="true" aria-label="Durakları göster veya gizle">Duraklar</button>
-        <button type="button" class="layer-btn" data-layer="weather" aria-pressed="true" aria-label="Hava durumu katmanını göster veya gizle">Hava</button>
+      <div class="layer-bar" role="toolbar" aria-label="Deney katmanları">
+        <button type="button" class="layer-btn" data-layer="bikeways" aria-pressed="true" aria-label="Bisiklet altyapısını göster veya gizle">Bisiklet</button>
+        <button type="button" class="layer-btn" data-layer="weather" aria-pressed="true" aria-label="Hava katmanını göster veya gizle">Hava</button>
       </div>
     </section>
   </main>
@@ -147,7 +181,7 @@
     <p>Kokpit hazırlanıyor</p>
   </div>
   <div id="toasts" class="toasts" aria-live="assertive"></div>
-  <script type="module" src="app.js?v=20261025-night-signal2"></script>
+  <script type="module" src="app.js?v=20261025-ergin-lab01"></script>
   <script>
     (function () {
       if (document.documentElement.dataset.embed !== "true") return;
