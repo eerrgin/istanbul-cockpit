@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="style.css?v=20261025-lab04">
+  <link rel="stylesheet" href="style.css?v=20261025-lab05">
   <script>
     try {
       if (new URLSearchParams(location.search).has('embed')) document.documentElement.dataset.embed = 'true';
@@ -58,7 +58,18 @@
       </dl>
       <div id="hours" class="hours" aria-label="Saatlik tahmin"></div>
       <div id="days" class="days" aria-label="Dört günlük tahmin"></div>
-      <p class="credit">Hava ve ışık: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
+      <figure class="city-map" aria-label="İstanbul haritası">
+        <div class="tiles" aria-hidden="true">
+          <img alt="" src="https://basemaps.cartocdn.com/dark_all/11/1187/767.png" width="256" height="256">
+          <img alt="" src="https://basemaps.cartocdn.com/dark_all/11/1188/767.png" width="256" height="256">
+          <img alt="" src="https://basemaps.cartocdn.com/dark_all/11/1189/767.png" width="256" height="256">
+          <img alt="" src="https://basemaps.cartocdn.com/dark_all/11/1187/768.png" width="256" height="256">
+          <img alt="" src="https://basemaps.cartocdn.com/dark_all/11/1188/768.png" width="256" height="256">
+          <img alt="" src="https://basemaps.cartocdn.com/dark_all/11/1189/768.png" width="256" height="256">
+        </div>
+        <figcaption><i></i> İSTANBUL · MERKEZ</figcaption>
+      </figure>
+      <p class="credit">Hava: Open-Meteo · Harita: CARTO / OSM</p>
     </section>
 
     <section class="grid" aria-label="Deney aletleri">
@@ -121,7 +132,7 @@
       </div>
     </section>
   </main>
-  <script type="module" src="app.js?v=20261025-lab04"></script>
+  <script type="module" src="app.js?v=20261025-lab05"></script>
   <script>
     (function () {
       if (document.documentElement.dataset.embed !== 'true') return;
