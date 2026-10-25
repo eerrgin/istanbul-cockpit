@@ -194,7 +194,7 @@ export function normalizeAdsbLolAircraft(payload) {
       enlem,
       boylam,
       irtifa,
-      hız: typeof plane.gs === 'number' ? plane.gs * 1.852 : null,
+      hız: typeof plane.gs === 'number' ? Math.round(plane.gs * 1.852 * 100) / 100 : null,
       yön: typeof plane.track === 'number' ? plane.track : null
     }];
   });
