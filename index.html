@@ -166,6 +166,10 @@
       };
       window.addEventListener("load", notify);
       window.addEventListener("resize", notify);
+      window.addEventListener("message", function (event) {
+        if (event.origin !== window.location.origin || event.source !== window.parent) return;
+        if (event.data && event.data.type === "istanbul-cockpit:measure") notify();
+      });
       document.addEventListener("DOMContentLoaded", function () { requestAnimationFrame(notify); });
       if ("ResizeObserver" in window) new ResizeObserver(notify).observe(document.documentElement);
     })();
