@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildStopGraph,
+  classifyBikeInfrastructure,
   coordsToLineString,
-  dijkstra,
   formatDistance,
   formatDuration,
   haversine,
-  overpassToGeoJSON,
   readCache,
   wmoToTurkish,
   writeCache
@@ -26,6 +24,27 @@ function memoryStorage() {
     }
   };
 }
+
+describe('bisiklet altyapısı sınıflandırması', () => {
+  it('ayrılmış bisiklet yolunu tanır', () => {
+    expect(classifyBikeInfrastructure({ highway: 'cycleway' })).toBe('dedicated');
+    expect(classifyBikeInfrastructure({ highway: 'residential', cycleway: 'track' })).toBe('dedicated');
+  });
+
+  it('yol üzeri bisiklet şeridini tanır', () => {
+    expect(classifyBikeInfrastructure({ highway: 'primary', cycleway: 'lane' })).toBe('lane');
+  });
+
+  it('paylaşımlı ve bisiklete açık yolu ayırt eder', () => {
+    expect(classifyBikeInfrastructure({ highway: 'residential', bicycle: 'designated' })).toBe('shared');
+    expect(classifyBikeInfrastructure({ highway: 'path' })).toBe('shared');
+  });
+
+  it('bisiklet etiketi olmayan sıradan yolu dışarıda bırakır', () => {
+    expect(classifyBikeInfrastructure({ highway: 'residential' })).toBeNull();
+    expect(classifyBikeInfrastructure(null)).toBeNull();
+  });
+});
 
 describe('haversine', () => {
   it('aynı koordinatta sıfır metre döner', () => {
@@ -88,86 +107,6 @@ describe('WMO kodu', () => {
 
   it('bilinmeyen kodda yedek açıklama döner', () => {
     expect(wmoToTurkish(123)).toEqual({ aciklama: 'Bilinmeyen', ikon: 'cloud' });
-  });
-});
-
-describe('Overpass GeoJSON dönüşümü', () => {
-  it('örnek relation kaydını hat ve durak koleksiyonuna çevirir', () => {
-    const geo = overpassToGeoJSON({
-      elements: [
-        { type: 'node', id: 5, lat: 41, lon: 29, tags: { name: 'Kabataş' } },
-        {
-          type: 'relation',
-          id: 10,
-          tags: { route: 'tram', name: 'T1' },
-          members: [
-            { type: 'way', ref: 1, geometry: [{ lat: 41, lon: 29 }, { lat: 41.01, lon: 29 }] },
-            { type: 'way', ref: 2, geometry: [{ lat: 41.01, lon: 29 }, { lat: 41.02, lon: 29.01 }] },
-            { type: 'node', ref: 5, role: 'stop', lat: 41, lon: 29 },
-            { type: 'node', ref: 6, role: 'stop', lat: 41.02, lon: 29.01 }
-          ]
-        }
-      ]
-    });
-    expect(geo.lines.type).toBe('FeatureCollection');
-    expect(geo.stops.type).toBe('FeatureCollection');
-    expect(geo.lines.features).toHaveLength(1);
-    expect(geo.lines.features[0].geometry.type).toBe('LineString');
-    expect(geo.lines.features[0].geometry.coordinates).toHaveLength(3);
-    expect(geo.lines.features[0].properties).toMatchObject({ id: '10', name: 'T1', mode: 'tram' });
-    expect(geo.routes[0].coordinates[0]).toEqual([29, 41]);
-    expect(geo.stops.features).toHaveLength(2);
-    expect(geo.stops.features[0].properties.name).toBe('Kabataş');
-    expect(geo.stops.features[0].properties.lineId).toBe('10');
-    expect(geo.stops.features[0].geometry.type).toBe('Point');
-  });
-
-  it('boş yanıtta boş koleksiyon döner', () => {
-    const geo = overpassToGeoJSON({});
-    expect(geo.lines.features).toEqual([]);
-    expect(geo.stops.features).toEqual([]);
-    expect(geo.routes).toEqual([]);
-  });
-});
-
-describe('durak grafı ve dijkstra', () => {
-  const stops = [
-    { id: 'A', name: 'A', lat: 41, lon: 29, lineId: 'L1', sequence: 0 },
-    { id: 'B', name: 'B', lat: 41.02, lon: 29.02, lineId: 'L1', sequence: 1 },
-    { id: 'C', name: 'C', lat: 41.01, lon: 29, lineId: 'L1', sequence: 2 },
-    { id: 'A', name: 'A', lat: 41, lon: 29, lineId: 'L2', sequence: 0 },
-    { id: 'C', name: 'C', lat: 41.01, lon: 29, lineId: 'L2', sequence: 1 }
-  ];
-
-  it('aynı hat üzerindeki ardışık duraklar arasında kenar kurar', () => {
-    const graph = buildStopGraph(stops);
-    expect(Object.keys(graph.nodes).sort()).toEqual(['A', 'B', 'C']);
-    const neighbors = graph.adj.B.map((edge) => edge.to).sort();
-    expect(neighbors).toEqual(['A', 'C']);
-    expect(graph.adj.A.some((edge) => edge.to === 'C')).toBe(true);
-  });
-
-  it('basit grafta en kısa yolu seçer', () => {
-    const graph = buildStopGraph(stops);
-    const direct = haversine(41, 29, 41.01, 29);
-    const via = haversine(41, 29, 41.02, 29.02) + haversine(41.02, 29.02, 41.01, 29);
-    const result = dijkstra(graph, 'A', 'C');
-    expect(result.path).toEqual(['A', 'C']);
-    expect(result.distance).toBeCloseTo(direct, 3);
-    expect(result.distance).toBeLessThan(via);
-  });
-
-  it('bağlantısız durakta boş yol döner', () => {
-    const graph = buildStopGraph([
-      { id: 'A', lat: 0, lon: 0, lineId: 'L1', sequence: 0 },
-      { id: 'B', lat: 0, lon: 1, lineId: 'L1', sequence: 1 },
-      { id: 'Z', lat: 5, lon: 5, lineId: 'L2', sequence: 0 }
-    ]);
-    const missing = dijkstra(graph, 'A', 'Y');
-    const disconnected = dijkstra(graph, 'A', 'Z');
-    expect(missing).toEqual({ path: [], distance: Infinity });
-    expect(disconnected.path).toEqual([]);
-    expect(disconnected.distance).toBe(Infinity);
   });
 });
 
