@@ -38,6 +38,7 @@ describe('haversine', () => {
 });
 
 
+describe('süre biçimi', () => {
   it('saniyeyi olduğu gibi yazar', () => {
     expect(formatDuration(45)).toBe('45 sn');
   });
