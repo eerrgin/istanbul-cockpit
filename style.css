@@ -256,3 +256,271 @@ html[data-embed="true"] .inst .credit { display: none; }
   .top, main { width: min(1120px, calc(100% - 16px)); }
   #temp { font-size: 84px; }
 }
+
+
+/* EMBED REFINEMENT / inherit the Gece Vardiyası visual language */
+@font-face {
+  font-family: "BSS";
+  src: url("/fonts/bss-latin.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "BSS";
+  src: url("/fonts/bss-latinext.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/lit-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/lit-latinext.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Martian Mono";
+  src: url("/fonts/mm-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Martian Mono";
+  src: url("/fonts/mm-latinext.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+html[data-embed="true"] {
+  --bg: #080506;
+  --bg-2: #11090a;
+  --card: rgba(19, 11, 12, .96);
+  --line: #392021;
+  --ink: #f2e8df;
+  --muted: #b9a69c;
+  --accent: #d65b50;
+  --accent-soft: #e7b8a7;
+  --good: #e7d0b6;
+  --shadow: none;
+  --sans: "Literata", Georgia, serif;
+  --serif: "BSS", "Arial Narrow", Impact, sans-serif;
+  --mono: "Martian Mono", ui-monospace, monospace;
+  color-scheme: dark;
+  background: var(--bg);
+}
+html[data-embed="true"] body {
+  min-height: 0;
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(214,91,80,.07), transparent 42%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  overflow: visible;
+}
+html[data-embed="true"] main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 7px 8px 9px;
+}
+html[data-embed="true"] h1,
+html[data-embed="true"] h2,
+html[data-embed="true"] h3 {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: .025em;
+  line-height: 1.08;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .hero {
+  min-width: 0;
+  padding: 12px;
+  gap: 9px 12px;
+  background: linear-gradient(145deg, rgba(25,13,14,.98), rgba(10,6,7,.98));
+  border-color: var(--line);
+  border-radius: 2px;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+html[data-embed="true"] .hero-main,
+html[data-embed="true"] .hero-stats,
+html[data-embed="true"] .hours,
+html[data-embed="true"] .days,
+html[data-embed="true"] .city-map,
+html[data-embed="true"] .inst { min-width: 0; }
+html[data-embed="true"] .hero-main > .kicker,
+html[data-embed="true"] .inst .kicker {
+  font-family: var(--mono);
+  color: #d69a90;
+  font-size: 9px;
+  line-height: 1.5;
+  letter-spacing: .095em;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] #temp {
+  font-family: var(--serif);
+  font-size: clamp(44px, 5vw, 58px);
+  line-height: .95;
+  letter-spacing: -.015em;
+}
+html[data-embed="true"] #temp small,
+html[data-embed="true"] h2 small { font-size: .3em; }
+html[data-embed="true"] .lede {
+  margin-top: 4px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(15px, 1.5vw, 19px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .muted,
+html[data-embed="true"] .credit,
+html[data-embed="true"] .stamp,
+html[data-embed="true"] .fine { color: var(--muted); }
+html[data-embed="true"] .stamp,
+html[data-embed="true"] .credit,
+html[data-embed="true"] .hero-stats dt {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .045em;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .hero-stats {
+  gap: 7px 10px;
+  margin: 0;
+  align-content: start;
+}
+html[data-embed="true"] .hero-stats div {
+  min-width: 0;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+}
+html[data-embed="true"] .hero-stats dd {
+  margin-top: 2px;
+  font-size: clamp(12px, 1.2vw, 15px);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .chip {
+  min-width: 0;
+  padding: 6px 7px;
+  border-radius: 2px;
+  background: rgba(214,91,80,.035);
+  border-color: var(--line);
+}
+html[data-embed="true"] .chip strong {
+  font-size: 12px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .chip span { font-size: 10px; line-height: 1.35; }
+html[data-embed="true"] .city-map {
+  border-radius: 2px;
+  border-color: var(--line);
+  background: #0c0a0b;
+}
+html[data-embed="true"] .city-map figcaption {
+  max-width: calc(100% - 14px);
+  font-size: 8px;
+  letter-spacing: .075em;
+  border-radius: 2px;
+  color: #f0d7cb;
+}
+html[data-embed="true"] .grid {
+  gap: 7px;
+  margin: 8px 0 0;
+}
+html[data-embed="true"] .inst {
+  padding: 10px 9px 9px;
+  border-radius: 2px;
+  border-color: var(--line);
+  background: linear-gradient(155deg, rgba(24,14,15,.97), rgba(11,7,8,.97));
+  box-shadow: none;
+  backdrop-filter: none;
+}
+html[data-embed="true"] .inst header {
+  display: block;
+  min-height: 0;
+}
+html[data-embed="true"] .inst h3 {
+  margin: 3px 0 0;
+  font-size: clamp(13px, 1.25vw, 16px);
+  line-height: 1.12;
+}
+html[data-embed="true"] .big {
+  margin: 8px 0 5px;
+  color: #f0d7cb;
+  font-family: var(--serif);
+  font-size: clamp(21px, 2vw, 26px);
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .moon {
+  width: 30px;
+  height: 30px;
+  margin: 5px 0;
+  box-shadow: inset -8px 0 0 rgba(8,5,6,.55), 0 0 0 1px rgba(214,91,80,.1);
+}
+html[data-embed="true"] .fine {
+  font-size: 10px;
+  line-height: 1.4;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+html[data-embed="true"] .fine li { overflow-wrap: anywhere; }
+html[data-embed="true"] .muted { font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+html[data-embed="true"] #light-copy,
+html[data-embed="true"] #breath-copy,
+html[data-embed="true"] #iss-copy,
+html[data-embed="true"] #quake-copy,
+html[data-embed="true"] #moon-copy,
+html[data-embed="true"] .inst .credit { display: none; }
+html[data-embed="true"] .credit { display: none; }
+
+@media (max-width: 860px) {
+  html[data-embed="true"] body { overflow: visible; }
+  html[data-embed="true"] .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "temp map"
+      "stats map"
+      "hours hours"
+      "days days";
+    gap: 8px;
+  }
+  html[data-embed="true"] .grid {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+  }
+  html[data-embed="true"] #temp { font-size: clamp(40px, 7vw, 54px); }
+}
+@media (max-width: 560px) {
+  html[data-embed="true"] main { padding: 6px 5px 8px; }
+  html[data-embed="true"] .hero { padding: 9px; gap: 7px; }
+  html[data-embed="true"] .hero-main > .kicker,
+  html[data-embed="true"] .inst .kicker { font-size: 8px; letter-spacing: .045em; }
+  html[data-embed="true"] .hero-stats { gap: 6px; }
+  html[data-embed="true"] .hero-stats dd { font-size: 12px; }
+  html[data-embed="true"] .grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  html[data-embed="true"] .inst { padding: 9px 8px 8px; }
+  html[data-embed="true"] .inst h3 { font-size: clamp(12px, 3.5vw, 15px); }
+  html[data-embed="true"] .big { font-size: clamp(18px, 5.2vw, 23px); }
+  html[data-embed="true"] .city-map { min-height: 122px; }
+}
