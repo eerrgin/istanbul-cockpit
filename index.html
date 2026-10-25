@@ -4,19 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="İstanbul için tamamen açık ve yabancı kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava durumu ve uçuş radarı kokpiti.">
-  <meta name="theme-color" content="#081018">
-  <title>İstanbul Açık Ulaşım ve Hava Kokpiti</title>
+  <meta name="theme-color" content="#070103">
+  <title>İstanbul Kokpiti — Gece Vardiyası / Açık Veri</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='10' fill='%23e2b15a'/%3E%3Ccircle cx='18' cy='18' r='8' fill='none' stroke='%231c1408' stroke-width='1.6'/%3E%3Cpath d='M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z' fill='%231c1408'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&amp;family=DM+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261025-night-signal">
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script>
     try {
+      var isEmbed = new URLSearchParams(window.location.search).has('embed');
+      if (isEmbed) document.documentElement.dataset.embed = 'true';
       var savedTheme = localStorage.getItem('istanbul-cockpit-theme');
       if (savedTheme === 'light' || savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -44,9 +46,9 @@
   <header class="header">
     <div class="brand">
       <svg class="logo" viewBox="0 0 36 36" aria-hidden="true">
-        <rect width="36" height="36" rx="10" fill="#e2b15a"></rect>
-        <circle cx="18" cy="18" r="8" fill="none" stroke="#1c1408" stroke-width="1.6"></circle>
-        <path d="M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z" fill="#1c1408"></path>
+        <rect width="36" height="36" rx="10" fill="#260b10"></rect>
+        <circle cx="18" cy="18" r="8" fill="none" stroke="#ff4136" stroke-width="1.6"></circle>
+        <path d="M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z" fill="#ff4136"></path>
         <circle cx="18" cy="18" r="1.5" fill="#1c1408"></circle>
       </svg>
       <div class="brand-copy">
@@ -125,6 +127,7 @@
           <p id="weather-temp" class="weather-temp">—</p>
           <p id="weather-desc" class="muted">İstanbul bekleniyor</p>
           <p id="weather-meta" class="muted"></p>
+          <p id="weather-updated" class="update-note">Open-Meteo · veri bekleniyor</p>
           <div id="weather-hours" class="hours" aria-label="Saatlik tahmin"></div>
         </article>
         <article id="flight-card" class="info-card" aria-live="polite">
@@ -135,6 +138,7 @@
           </div>
           <p id="flight-count" class="flight-count">—</p>
           <p id="flight-nearest" class="muted">İstanbul kutusu sorgulanıyor</p>
+          <p id="flight-updated" class="update-note">OpenSky · veri bekleniyor</p>
         </article>
       </div>
       <div class="layer-bar" role="toolbar" aria-label="Harita katmanları">
@@ -150,6 +154,19 @@
     <p>Kokpit hazırlanıyor</p>
   </div>
   <div id="toasts" class="toasts" aria-live="assertive"></div>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=20261025-night-signal"></script>
+  <script>
+    (function () {
+      if (document.documentElement.dataset.embed !== "true") return;
+      var notify = function () {
+        var height = Math.ceil(document.documentElement.scrollHeight);
+        window.parent.postMessage({ type: "istanbul-cockpit:resize", height: height }, window.location.origin);
+      };
+      window.addEventListener("load", notify);
+      window.addEventListener("resize", notify);
+      document.addEventListener("DOMContentLoaded", function () { requestAnimationFrame(notify); });
+      if ("ResizeObserver" in window) new ResizeObserver(notify).observe(document.documentElement);
+    })();
+  </script>
 </body>
 </html>
