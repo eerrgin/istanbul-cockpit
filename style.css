@@ -698,7 +698,7 @@ html[data-embed="true"] .maplibregl-ctrl-logo { opacity: .86; }
   .layout { grid-template-columns: minmax(0, 1fr); }
   .map-wrap { height: 64vh; min-height: 360px; }
   .panel { padding: 12px; }
-  .float-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .float-cards { grid-template-columns: minmax(0, 1fr); }
   .info-card { padding: 11px; gap: 8px; }
   .info-card .card-head { align-items: center; gap: 5px; }
   .info-card .card-head h2 { font-size: 19px; }
@@ -719,7 +719,7 @@ html[data-embed="true"] .maplibregl-ctrl-logo { opacity: .86; }
   .header-actions { gap: 6px; }
   .status { padding: 6px 8px; font-size: 9px; }
   .icon-btn { width: 38px; min-height: 38px; }
-  .float-cards { left: 6px; right: 6px; top: 6px; gap: 6px; }
+  .float-cards { left: 6px; right: 6px; top: 6px; gap: 6px; grid-template-columns: minmax(0, 1fr); }
   .hours { display: none; }
   .layer-bar { left: 8px; right: 8px; bottom: 8px; transform: none; width: auto; gap: 5px; }
   .layer-btn { flex: 1; padding-inline: 7px; font-size: 9px; }
