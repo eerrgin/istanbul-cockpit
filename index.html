@@ -3,204 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Ergin Lab deneysel saha projesi: İstanbul bisiklet altyapısı, hava durumu, rota deneyi ve yerel not defteri.">
+  <meta name="description" content="Ergin Lab saha deneyi: İstanbul için canlı hava, ışık penceresi, ay evresi, hava kalitesi, basınç nefesi, sismik nabız ve yörünge.">
   <meta name="theme-color" content="#070103">
   <title>Ergin Lab — İstanbul Saha Deneyi 01</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='10' fill='%23260b10'/%3E%3Ccircle cx='18' cy='18' r='8' fill='none' stroke='%23ff4136' stroke-width='1.6'/%3E%3Cpath d='M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z' fill='%23ff4136'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&amp;family=DM+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=20261025-ergin-lab03">
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="style.css?v=20261025-lab04">
   <script>
     try {
-      var isEmbed = new URLSearchParams(window.location.search).has('embed');
-      if (isEmbed) document.documentElement.dataset.embed = 'true';
-      var savedTheme = localStorage.getItem('istanbul-cockpit-theme');
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        var themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute('content', savedTheme === 'light' ? '#f2e8df' : '#070103');
+      if (new URLSearchParams(location.search).has('embed')) document.documentElement.dataset.embed = 'true';
+      var saved = localStorage.getItem('istanbul-cockpit-theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', saved === 'light' ? '#f4ece4' : '#070103');
       }
-    } catch (error) {}
-    if (location.protocol === 'file:') {
-      document.addEventListener('DOMContentLoaded', function () {
-        var box = document.getElementById('toasts');
-        var loading = document.getElementById('loading');
-        if (loading) loading.hidden = true;
-        if (!box) return;
-        var el = document.createElement('div');
-        el.className = 'toast toast-error';
-        el.setAttribute('role', 'alert');
-        el.textContent = 'Bu kokpit dosya üzerinden modül yükleyemez. Klasörde python3 -m http.server 8080 çalıştırın.';
-        box.appendChild(el);
-      });
-    }
+    } catch (e) {}
   </script>
 </head>
 <body>
-  <div id="offline-banner" class="offline-banner" hidden>Çevrimdışı moddasınız. Kayıtlı veriler gösteriliyor.</div>
-  <header class="header">
+  <div id="offline-banner" class="offline" hidden>Çevrimdışı. Son kayıtlı gözlem gösteriliyor.</div>
+  <header class="top">
     <div class="brand">
-      <svg class="logo" viewBox="0 0 36 36" aria-hidden="true">
-        <rect width="36" height="36" rx="10" fill="#260b10"></rect>
-        <circle cx="18" cy="18" r="8" fill="none" stroke="#ff4136" stroke-width="1.6"></circle>
-        <path d="M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z" fill="#ff4136"></path>
-        <circle cx="18" cy="18" r="1.5" fill="#ff4136"></circle>
-      </svg>
-      <div class="brand-copy">
+      <svg class="mark" viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="10" fill="#260b10"/><circle cx="18" cy="18" r="8" fill="none" stroke="#ff4136" stroke-width="1.6"/><path d="M18 8.5 L20.2 18 L18 16.2 L15.8 18 Z" fill="#ff4136"/><circle cx="18" cy="18" r="1.4" fill="#ff4136"/></svg>
+      <div>
         <p class="kicker">ERGIN LAB · SAHA DENEYİ 01</p>
-        <h1>İstanbul / Bisiklet &amp; Hava</h1>
+        <h1>İstanbul / Atmosfer</h1>
       </div>
     </div>
-    <div class="header-actions">
-      <p id="net-status" class="status" role="status" data-state="on">Çevrimiçi</p>
-      <button type="button" id="theme-toggle" class="icon-btn" aria-label="Tema değiştir">
-        <span id="theme-icon" class="icon-slot"></span>
-      </button>
+    <div class="top-actions">
+      <p id="net" class="pill" data-state="on">Çevrimiçi</p>
+      <button type="button" id="theme" class="ghost" aria-label="Tema değiştir">Tema</button>
+      <button type="button" id="refresh" class="ghost">Yenile</button>
     </div>
   </header>
-  <main class="layout">
-    <aside class="panel">
-      <form id="route-form" class="card" novalidate>
-        <div class="card-head">
-          <span class="icon-slot" id="route-icon"></span>
-          <h2>Rota planlayıcı</h2>
-        </div>
-        <label class="field" for="origin-input">
-          <span>Başlangıç</span>
-          <input id="origin-input" name="origin" type="text" autocomplete="off" spellcheck="false" placeholder="Adres veya yer adı" aria-label="Başlangıç adresi" aria-autocomplete="list" aria-controls="origin-suggest">
-          <ul id="origin-suggest" class="suggest" role="listbox" aria-label="Başlangıç önerileri"></ul>
-        </label>
-        <label class="field" for="destination-input">
-          <span>Bitiş</span>
-          <input id="destination-input" name="destination" type="text" autocomplete="off" spellcheck="false" placeholder="Adres veya yer adı" aria-label="Bitiş adresi" aria-autocomplete="list" aria-controls="destination-suggest">
-          <ul id="destination-suggest" class="suggest" role="listbox" aria-label="Bitiş önerileri"></ul>
-        </label>
-        <div class="modes" role="group" aria-label="Ulaşım modu">
-          <button type="button" class="mode-btn" data-mode="foot" aria-pressed="false" aria-label="Yürüme">
-            <span class="icon-slot" id="mode-foot"></span>
-            Yürüme
-          </button>
-          <button type="button" class="mode-btn" data-mode="bike" aria-pressed="true" aria-label="Bisiklet">
-            <span class="icon-slot" id="mode-bike"></span>
-            Bisiklet
-          </button>
-          <button type="button" class="mode-btn" data-mode="driving" aria-pressed="false" aria-label="Araba">
-            <span class="icon-slot" id="mode-car"></span>
-            Araba
-          </button>
-        </div>
-        <button type="submit" id="route-btn" class="primary" aria-label="Rota hesapla">Rota hesapla</button>
-        <p class="source-credit route-credit">Rota motoru: <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> · Yol verisi © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>
-        <article id="summary" class="summary" hidden>
-          <h3 id="summary-title">Rota</h3>
-          <p id="summary-meta"></p>
-          <ol id="steps" aria-label="Rota adımları"></ol>
-        </article>
-      </form>
-      <section class="card bike-card" aria-labelledby="bike-title">
-        <div class="card-head">
-          <span class="icon-slot" id="bike-icon"></span>
-          <h2 id="bike-title">Bisiklet altyapısı</h2>
-          <span class="experiment-tag">DENEYSEL</span>
-        </div>
-        <p id="bike-summary" class="hint">İstanbul için açık harita kayıtlarında işaretlenmiş bisiklet güzergâhları aranıyor.</p>
-        <div class="bike-metrics">
-          <strong id="bike-count">—</strong>
-          <span id="bike-detail">Ayrılmış yollar · şeritler · paylaşımlı güzergâhlar</span>
-        </div>
-        <p id="bike-updated" class="update-note">BİSİKLET VERİSİ BEKLENİYOR</p>
-        <label class="experiment-toggle" for="bike-separated-toggle">
-          <input id="bike-separated-toggle" type="checkbox">
-          <span><strong>Deney 01</strong> · Yalnızca ayrılmış bisiklet yolları</span>
-        </label>
-        <div class="bike-legend" aria-label="Harita renkleri">
-          <span><i class="legend-dedicated"></i> Ayrılmış</span>
-          <span><i class="legend-lane"></i> Şerit</span>
-          <span><i class="legend-shared"></i> Paylaşımlı</span>
-        </div>
-        <button type="button" id="bike-refresh" class="ghost" aria-label="Bisiklet altyapısı verisini yenile">Bisiklet verisini yenile</button>
-        <p class="hint">Bu bir altyapı deneyi, navigasyon güvenliği garantisi değildir. Harita kayıtları eksik veya güncelliğini yitirmiş olabilir; renkler kaydedilmiş etiketleri gösterir.</p>
-        <a class="source-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Açık harita verisi lisansı</a>
-      </section>
-      <section class="card notes-card" aria-labelledby="notes-title">
-        <div class="card-head">
-          <span class="icon-slot" id="notes-icon"></span>
-          <div class="notes-title-wrap">
-            <p class="kicker">ERGIN LAB · FIELD LOG</p>
-            <h2 id="notes-title">Saha not defteri</h2>
-          </div>
-          <span class="experiment-tag">YEREL</span>
-        </div>
-        <p class="hint">Gözlemlerini, yol sorunlarını veya yeni deney fikirlerini yaz. Notlar yalnızca bu tarayıcıda saklanır; sunucuya gönderilmez.</p>
-        <label class="field notes-field" for="lab-notes">
-          <span>Notlarım</span>
-          <textarea id="lab-notes" maxlength="6000" rows="5" placeholder="Örn. Sahil hattında ayrılmış yol nerede başlıyor? Zemin, aydınlatma, kesintiler…"></textarea>
-        </label>
-        <div class="notes-status-row">
-          <span id="notes-status" class="update-note">Notlar bu cihazda saklanır</span>
-          <span id="notes-count" class="notes-count">0 / 6000 karakter</span>
-        </div>
-        <div class="notes-actions">
-          <button type="button" id="notes-save" class="primary">Kaydet</button>
-          <button type="button" id="notes-export" class="ghost">Dışa aktar</button>
-          <button type="button" id="notes-clear" class="ghost">Temizle</button>
-        </div>
-      </section>
-    </aside>
-    <section class="map-wrap" aria-label="İstanbul haritası">
-      <div id="map"></div>
-      <div class="float-cards">
-        <article id="weather-card" class="info-card" aria-live="polite">
-          <div class="card-head">
-            <span class="icon-slot" id="weather-icon"></span>
-            <h2>Hava durumu</h2>
-            <button type="button" id="weather-refresh" class="text-btn" aria-label="Hava durumunu yenile">Yenile</button>
-          </div>
-          <p id="weather-temp" class="weather-temp">—</p>
-          <p id="weather-desc" class="muted">İstanbul bekleniyor</p>
-          <p id="weather-meta" class="muted"></p>
-          <p id="weather-updated" class="update-note">HAVA VERİSİ BEKLENİYOR</p>
-          <a class="source-credit" href="https://open-meteo.com/" target="_blank" rel="noopener">Hava verisi: Open-Meteo.com</a>
-          <div id="weather-hours" class="hours" aria-label="Saatlik tahmin"></div>
-          <div id="weather-days" class="weather-days" aria-label="Dört günlük hava tahmini"></div>
-        </article>
+
+  <main>
+    <section class="hero" aria-labelledby="wx-title">
+      <div class="hero-main">
+        <p class="kicker">CANLI GÖZLEM · 41°00′N 28°58′E</p>
+        <h2 id="wx-title"><span id="temp">—</span><small>°C</small></h2>
+        <p id="desc" class="lede">İstanbul bekleniyor</p>
+        <p id="feel" class="muted"></p>
+        <p id="updated" class="stamp">HAVA VERİSİ BEKLENİYOR</p>
       </div>
-      <div class="layer-bar" role="toolbar" aria-label="Deney katmanları">
-        <button type="button" class="layer-btn" data-layer="bikeways" aria-pressed="true" aria-label="Bisiklet altyapısını göster veya gizle">Bisiklet</button>
-        <button type="button" class="layer-btn" data-layer="weather" aria-pressed="true" aria-label="Hava katmanını göster veya gizle">Hava</button>
+      <dl class="hero-stats">
+        <div><dt>Rüzgâr</dt><dd id="wind">—</dd></div>
+        <div><dt>Nem</dt><dd id="humid">—</dd></div>
+        <div><dt>Basınç</dt><dd id="press">—</dd></div>
+        <div><dt>Hissedilen</dt><dd id="app">—</dd></div>
+      </dl>
+      <div id="hours" class="hours" aria-label="Saatlik tahmin"></div>
+      <div id="days" class="days" aria-label="Dört günlük tahmin"></div>
+      <p class="credit">Hava ve ışık: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a></p>
+    </section>
+
+    <section class="grid" aria-label="Deney aletleri">
+      <article class="inst" id="light-card">
+        <header><p class="kicker">ALET 01</p><h3>Işık penceresi</h3></header>
+        <p class="big" id="light-state">—</p>
+        <p class="muted" id="light-copy">Altın saat, şehrin en sinematik ışığının penceresidir.</p>
+        <ul class="fine" id="light-list"></ul>
+      </article>
+      <article class="inst" id="moon-card">
+        <header><p class="kicker">ALET 02</p><h3>Ay evresi</h3></header>
+        <p class="big" id="moon-name">—</p>
+        <div class="moon" id="moon-disk" aria-hidden="true"></div>
+        <p class="muted" id="moon-copy"></p>
+      </article>
+      <article class="inst" id="air-card">
+        <header><p class="kicker">ALET 03</p><h3>Hava kalitesi</h3></header>
+        <p class="big" id="aqi">—</p>
+        <p class="muted" id="aqi-label">Avrupa AQI</p>
+        <ul class="fine" id="aqi-list"></ul>
+      </article>
+      <article class="inst" id="breath-card">
+        <header><p class="kicker">ALET 04</p><h3>Basınç nefesi</h3></header>
+        <p class="big" id="breath">—</p>
+        <p class="muted" id="breath-copy">Üç saatlik basınç farkı, havanın sıkışıp gevşemesini gösterir.</p>
+      </article>
+      <article class="inst" id="quake-card">
+        <header><p class="kicker">ALET 05</p><h3>Sismik nabız</h3></header>
+        <p class="big" id="quake-mag">—</p>
+        <p class="muted" id="quake-copy">İstanbul çevresindeki son kayıtlı deprem.</p>
+        <ul class="fine" id="quake-list"></ul>
+        <p class="credit">Kaynak: <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a></p>
+      </article>
+      <article class="inst" id="orbit-card">
+        <header><p class="kicker">ALET 06</p><h3>Yörünge</h3></header>
+        <p class="big" id="iss-dist">—</p>
+        <p class="muted" id="iss-copy">ISS’in İstanbul’a anlık uzaklığı.</p>
+        <p class="credit">Kaynak: <a href="https://wheretheiss.at/" target="_blank" rel="noopener">Where The ISS At</a></p>
+      </article>
+    </section>
+
+    <section class="notes" aria-labelledby="notes-title">
+      <header>
+        <div>
+          <p class="kicker">ERGIN LAB · FIELD LOG</p>
+          <h2 id="notes-title">Saha not defteri</h2>
+        </div>
+        <span class="tag">YEREL</span>
+      </header>
+      <p class="muted">Gözlem bu tarayıcıda kalır. Sunucuya gitmez.</p>
+      <textarea id="lab-notes" maxlength="6000" rows="5" placeholder="Işık, rüzgâr, basınç, gökyüzü…"></textarea>
+      <div class="note-row">
+        <span id="notes-status">Notlar bu cihazda saklanır</span>
+        <span id="notes-count">0 / 6000</span>
+      </div>
+      <div class="note-actions">
+        <button type="button" id="notes-save" class="solid">Kaydet</button>
+        <button type="button" id="notes-export" class="ghost">Dışa aktar</button>
+        <button type="button" id="notes-clear" class="ghost">Temizle</button>
       </div>
     </section>
   </main>
-  <div id="loading" class="loading" role="status" aria-live="polite">
-    <div class="spinner" aria-hidden="true"></div>
-    <p>Kokpit hazırlanıyor</p>
-  </div>
-  <div id="toasts" class="toasts" aria-live="assertive"></div>
-  <script type="module" src="app.js?v=20261025-ergin-lab03"></script>
+  <script type="module" src="app.js?v=20261025-lab04"></script>
   <script>
     (function () {
-      if (document.documentElement.dataset.embed !== "true") return;
+      if (document.documentElement.dataset.embed !== 'true') return;
       var notify = function () {
         var height = Math.ceil(document.documentElement.scrollHeight);
-        window.parent.postMessage({ type: "istanbul-cockpit:resize", height: height }, window.location.origin);
+        parent.postMessage({ type: 'istanbul-cockpit:resize', height: height }, location.origin);
       };
-      window.addEventListener("load", notify);
-      window.addEventListener("resize", notify);
-      window.addEventListener("message", function (event) {
-        if (event.origin !== window.location.origin || event.source !== window.parent) return;
-        if (event.data && event.data.type === "istanbul-cockpit:measure") notify();
+      addEventListener('load', notify);
+      addEventListener('resize', notify);
+      addEventListener('message', function (event) {
+        if (event.origin !== location.origin || event.source !== parent) return;
+        if (event.data && event.data.type === 'istanbul-cockpit:measure') notify();
       });
-      document.addEventListener("DOMContentLoaded", function () { requestAnimationFrame(notify); });
-      if ("ResizeObserver" in window) {
-        var observer = new ResizeObserver(notify);
-        observer.observe(document.documentElement);
-        if (document.body) observer.observe(document.body);
-      }
+      document.addEventListener('DOMContentLoaded', function () { requestAnimationFrame(notify); });
+      if ('ResizeObserver' in window) new ResizeObserver(notify).observe(document.documentElement);
     })();
   </script>
 </body>
