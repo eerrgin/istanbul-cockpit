@@ -3,20 +3,20 @@
   "short_name": "İstanbul Kokpit",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#081018",
-  "theme_color": "#081018",
+  "background_color": "#070103",
+  "theme_color": "#070103",
   "orientation": "any",
   "lang": "tr",
   "description": "İstanbul için yabancı ve açık kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava ve uçuş kokpiti.",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23081018'/%3E%3Ccircle cx='96' cy='96' r='46' fill='none' stroke='%23e2b15a' stroke-width='10'/%3E%3Cpath d='M96 42 L108 96 L96 86 L84 96 Z' fill='%237fd3de'/%3E%3Ccircle cx='96' cy='96' r='6' fill='%23e2b15a'/%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23070103'/%3E%3Ccircle cx='96' cy='96' r='46' fill='none' stroke='%23ff4136' stroke-width='10'/%3E%3Cpath d='M96 42 L108 96 L96 86 L84 96 Z' fill='%23f0b8ad'/%3E%3Ccircle cx='96' cy='96' r='6' fill='%23ff4136'/%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%23101a24'/%3E%3Ccircle cx='256' cy='256' r='132' fill='none' stroke='%23e2b15a' stroke-width='24'/%3E%3Cpath d='M256 104 L292 256 L256 228 L220 256 Z' fill='%237fd3de'/%3E%3Ccircle cx='256' cy='256' r='16' fill='%23edf3f8'/%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='108' fill='%2314080c'/%3E%3Ccircle cx='256' cy='256' r='132' fill='none' stroke='%23ff4136' stroke-width='24'/%3E%3Cpath d='M256 104 L292 256 L256 228 L220 256 Z' fill='%23f0b8ad'/%3E%3Ccircle cx='256' cy='256' r='16' fill='%23f6ebe4'/%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
