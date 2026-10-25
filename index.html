@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="İstanbul için tamamen açık ve yabancı kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava durumu ve uçuş radarı kokpiti.">
+  <meta name="description" content="İstanbul için tamamen açık ve yabancı kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava durumu ve ulaşım kokpiti.">
   <meta name="theme-color" content="#070103">
   <title>İstanbul Kokpiti — Gece Vardiyası / Açık Veri</title>
   <link rel="manifest" href="manifest.json">
@@ -134,22 +134,10 @@
           <div id="weather-hours" class="hours" aria-label="Saatlik tahmin"></div>
           <div id="weather-days" class="weather-days" aria-label="Dört günlük hava tahmini"></div>
         </article>
-        <article id="flight-card" class="info-card" aria-live="polite">
-          <div class="card-head">
-            <span class="icon-slot" id="flight-icon"></span>
-            <h2>Uçuş radarı</h2>
-            <button type="button" id="flight-refresh" class="text-btn" aria-label="Uçuşları yenile">Yenile</button>
-          </div>
-          <p id="flight-count" class="flight-count">—</p>
-          <p id="flight-nearest" class="muted">İstanbul kutusu sorgulanıyor</p>
-          <p id="flight-updated" class="update-note">RADAR VERİSİ BEKLENİYOR</p>
-          <a class="source-credit" href="https://api.adsb.lol/docs" target="_blank" rel="noopener">Uçuş verisi: ADSB.lol · ODbL</a>
-        </article>
       </div>
       <div class="layer-bar" role="toolbar" aria-label="Harita katmanları">
         <button type="button" class="layer-btn" data-layer="lines" aria-pressed="true" aria-label="Toplu taşıma hatlarını göster veya gizle">Hatlar</button>
         <button type="button" class="layer-btn" data-layer="stops" aria-pressed="true" aria-label="Durakları göster veya gizle">Duraklar</button>
-        <button type="button" class="layer-btn" data-layer="flights" aria-pressed="true" aria-label="Uçuşları göster veya gizle">Uçuşlar</button>
         <button type="button" class="layer-btn" data-layer="weather" aria-pressed="true" aria-label="Hava durumu katmanını göster veya gizle">Hava</button>
       </div>
     </section>
