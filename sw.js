@@ -1,4 +1,4 @@
-const VERSION = 'v9-no-flights-cleanup';
+const VERSION = 'v10-ergin-lab-cycleways';
 const STATIC_CACHE = `istanbul-cockpit-static-${VERSION}`;
 const API_CACHE = `istanbul-cockpit-api-${VERSION}`;
 const ASSETS = ['./index.html', './style.css', './app.js', './utils.js', './manifest.json'];
