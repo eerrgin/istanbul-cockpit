@@ -1,4 +1,4 @@
-const VERSION = 'v3-night-signal';
+const VERSION = 'v4-night-signal';
 const STATIC_CACHE = `istanbul-cockpit-static-${VERSION}`;
 const API_CACHE = `istanbul-cockpit-api-${VERSION}`;
 const ASSETS = ['./index.html', './style.css', './app.js', './utils.js', './manifest.json'];
