@@ -14,9 +14,9 @@ const WEATHER_TTL = 10 * 60 * 1000;
 const BIKE_TTL = 45 * 60 * 1000;
 const PLACE_SEARCH_GAP = 700;
 const OVERPASS_ENDPOINTS = [
-  'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter'
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter'
 ];
 const BIKE_QUERY = '[out:json][timeout:25];(way["highway"="cycleway"](40.80,28.40,41.35,29.50);way["cycleway"~"^(lane|track|shared_lane|share_busway|opposite_lane|opposite_track)$"](40.80,28.40,41.35,29.50);way["cycleway:left"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["cycleway:right"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["cycleway:both"~"^(lane|track|shared_lane|share_busway)$"](40.80,28.40,41.35,29.50);way["bicycle"="designated"]["highway"~"^(path|footway|track)$"](40.80,28.40,41.35,29.50););out tags geom;';
 const LAYER_IDS = {
