@@ -7,7 +7,7 @@
   "theme_color": "#070103",
   "orientation": "any",
   "lang": "tr",
-  "description": "İstanbul için yabancı ve açık kaynaklı servislerle çalışan çok modlu ulaşım, canlı hava ve uçuş kokpiti.",
+  "description": "İstanbul için yabancı ve açık kaynaklı servislerle çalışan çok modlu ulaşım ve canlı hava kokpiti.",
   "icons": [
     {
       "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23070103'/%3E%3Ccircle cx='96' cy='96' r='46' fill='none' stroke='%23ff4136' stroke-width='10'/%3E%3Cpath d='M96 42 L108 96 L96 86 L84 96 Z' fill='%23f0b8ad'/%3E%3Ccircle cx='96' cy='96' r='6' fill='%23ff4136'/%3E%3C/svg%3E",
