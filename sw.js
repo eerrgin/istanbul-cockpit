@@ -1,4 +1,4 @@
-const VERSION = 'v13-ergin-lab-compact';
+const VERSION = 'v14-atmosphere-embed';
 const STATIC_CACHE = `istanbul-cockpit-static-${VERSION}`;
 const API_CACHE = `istanbul-cockpit-api-${VERSION}`;
 const ASSETS = ['./index.html', './style.css', './app.js', './utils.js', './manifest.json'];
