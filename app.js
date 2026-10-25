@@ -344,6 +344,7 @@ async function loadTransit(force = false) {
     }
     if (!payload.lines.features.length) toast('Toplu taşıma hattı bulunamadı', 'warn');
   } catch (error) {
+    updateFreshness('transit-updated', 'BAĞLANTI YOK');
     toast(error.message || 'Toplu taşıma verisi alınamadı');
     renderStopList();
   }
@@ -371,9 +372,35 @@ function renderWeather(data, freshness = 'GÜNCEL') {
   const humidity = Number(current.relative_humidity_2m);
   const wind = Number(current.wind_speed_10m);
   const bits = [];
+  const feelsLike = Number(current.apparent_temperature);
+  if (Number.isFinite(feelsLike)) bits.push(`Hissedilen ${Math.round(feelsLike)}°C`);
   if (Number.isFinite(humidity)) bits.push(`Nem %${Math.round(humidity)}`);
-  if (Number.isFinite(wind)) bits.push(`Rüzgar ${Math.round(wind)} km/sa`);
+  if (Number.isFinite(wind)) bits.push(`Rüzgâr ${Math.round(wind)} km/sa`);
   document.getElementById('weather-meta').textContent = bits.join(' · ');
+  const daily = data.daily || {};
+  const dayRoot = document.getElementById('weather-days');
+  if (dayRoot) {
+    dayRoot.replaceChildren();
+    const dayTimes = Array.isArray(daily.time) ? daily.time : [];
+    for (let i = 0; i < Math.min(4, dayTimes.length); i += 1) {
+      const item = document.createElement('div');
+      item.className = 'weather-day';
+      const day = document.createElement('span');
+      day.textContent = i === 0 ? 'BUGÜN' : new Intl.DateTimeFormat('tr-TR', {
+        weekday: 'short',
+        timeZone: 'Europe/Istanbul'
+      }).format(new Date(`${dayTimes[i]}T12:00:00+03:00`)).toLocaleUpperCase('tr-TR');
+      const condition = document.createElement('small');
+      condition.textContent = wmoToTurkish(daily.weather_code && daily.weather_code[i]).ikon || '··';
+      const low = Number(daily.temperature_2m_min && daily.temperature_2m_min[i]);
+      const high = Number(daily.temperature_2m_max && daily.temperature_2m_max[i]);
+      const range = document.createElement('strong');
+      range.textContent = Number.isFinite(low) && Number.isFinite(high) ? `${Math.round(low)}° / ${Math.round(high)}°` : '—';
+      item.title = wmoToTurkish(daily.weather_code && daily.weather_code[i]).aciklama || 'Tahmin';
+      item.append(day, condition, range);
+      dayRoot.append(item);
+    }
+  }
   setLucide('weather-icon', info.ikon);
   const hours = document.getElementById('weather-hours');
   hours.replaceChildren();
@@ -415,7 +442,7 @@ function renderWeather(data, freshness = 'GÜNCEL') {
 }
 
 async function loadWeather(force) {
-  const key = 'cockpit:weather:v1';
+  const key = 'cockpit:weather:v2';
   if (!force) {
     try {
       const cached = readCache(storage(), key);
@@ -427,7 +454,7 @@ async function loadWeather(force) {
       toast('Kayıtlı hava durumu okunamadı', 'warn');
     }
   }
-  const url = 'https://api.open-meteo.com/v1/forecast?latitude=41.0082&longitude=28.9784&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&hourly=temperature_2m,weather_code&timezone=Europe%2FIstanbul&forecast_hours=8';
+  const url = 'https://api.open-meteo.com/v1/forecast?latitude=41.0082&longitude=28.9784&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_min,temperature_2m_max&timezone=Europe%2FIstanbul&forecast_hours=8&forecast_days=4&wind_speed_unit=kmh';
   try {
     const data = await fetchJson(url, { headers: { Accept: 'application/json' } }, 15000, 'Hava durumu');
     if (!data.current) throw new Error('Hava durumu verisi eksik');
