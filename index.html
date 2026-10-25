@@ -171,7 +171,11 @@
         if (event.data && event.data.type === "istanbul-cockpit:measure") notify();
       });
       document.addEventListener("DOMContentLoaded", function () { requestAnimationFrame(notify); });
-      if ("ResizeObserver" in window) new ResizeObserver(notify).observe(document.documentElement);
+      if ("ResizeObserver" in window) {
+        var observer = new ResizeObserver(notify);
+        observer.observe(document.documentElement);
+        if (document.body) observer.observe(document.body);
+      }
     })();
   </script>
 </body>
