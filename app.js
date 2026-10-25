@@ -6,8 +6,6 @@ import {
   formatDistance,
   formatDuration,
   haversine,
-  normalizeAdsbLolAircraft,
-  normalizeOpenSkyStates,
   overpassToGeoJSON,
   readCache,
   wmoToTurkish,
@@ -15,7 +13,6 @@ import {
 } from './utils.js';
 
 const CENTER = { lat: 41.0082, lon: 28.9784 };
-const FLIGHT_TTL = 10 * 60 * 1000;
 const WEATHER_TTL = 10 * 60 * 1000;
 const TRANSIT_TTL = 30 * 60 * 1000;
 const PLACE_SEARCH_GAP = 700;
@@ -28,7 +25,6 @@ const OVERPASS_QUERY = '[out:json][timeout:25];(relation["route"~"^(subway|light
 const LAYER_IDS = {
   lines: 'transit-lines',
   stops: 'transit-stops',
-  flights: 'flights',
   weather: 'weather-point'
 };
 const PROFILE_LABEL = { foot: 'Yürüme', bike: 'Bisiklet', driving: 'Araba' };
@@ -113,12 +109,6 @@ function modeLabel(mode) {
   if (mode === 'train') return 'Tren / Marmaray';
   if (mode === 'monorail') return 'Monoray';
   return 'Hat';
-}
-
-function cardinal(degrees) {
-  const names = ['kuzey', 'kuzeydoğu', 'doğu', 'güneydoğu', 'güney', 'güneybatı', 'batı', 'kuzeybatı'];
-  const index = Math.round((((degrees % 360) + 360) % 360) / 45) % 8;
-  return names[index];
 }
 
 function readPoint(id) {
@@ -501,88 +491,6 @@ async function loadWeather(force) {
   }
 }
 
-function renderFlights(flights, freshness = 'GÜNCEL') {
-  updateFreshness('flight-updated', freshness);
-  const features = flights.map((flight) => ({
-    type: 'Feature',
-    geometry: { type: 'Point', coordinates: [flight.boylam, flight.enlem] },
-    properties: {
-      callsign: flight.callsign || flight.icao24 || 'Bilinmiyor',
-      altitude: flight.irtifa,
-      heading: flight.yön,
-      country: flight.ülke || ''
-    }
-  }));
-  if (mapReady && map && map.getSource('flights')) {
-    map.getSource('flights').setData({ type: 'FeatureCollection', features });
-  }
-  document.getElementById('flight-count').textContent = `${flights.length} uçuş`;
-  if (!flights.length) {
-    document.getElementById('flight-nearest').textContent = 'Bölgede uçuş yok';
-    return;
-  }
-  let best = flights[0];
-  let bestDistance = haversine(CENTER.lat, CENTER.lon, best.enlem, best.boylam);
-  for (const flight of flights) {
-    const distance = haversine(CENTER.lat, CENTER.lon, flight.enlem, flight.boylam);
-    if (distance < bestDistance) {
-      best = flight;
-      bestDistance = distance;
-    }
-  }
-  const direction = cardinal(bearing(CENTER.lat, CENTER.lon, best.enlem, best.boylam));
-  const altitude = typeof best.irtifa === 'number' ? `${Math.round(best.irtifa)} m` : 'irtifa yok';
-  const sign = best.callsign || best.icao24 || 'Bilinmiyor';
-  document.getElementById('flight-nearest').textContent = `${sign} · ${altitude} · ${direction} · ${formatDistance(bestDistance)}`;
-}
-
-async function loadFlights(force) {
-  const key = 'cockpit:flights:adsblol:v2';
-  if (!force) {
-    try {
-      const cached = readCache(storage(), key);
-      if (cached) {
-        renderFlights(cached, 'ÖNBELLEK');
-        return;
-      }
-    } catch (error) {
-      console.warn('Cached flight data could not be read.', error);
-    }
-  }
-  try {
-    let flights;
-    let freshness = 'CANLI VERİ';
-    try {
-      const url = `https://api.adsb.lol/v2/lat/${CENTER.lat}/lon/${CENTER.lon}/dist/100`;
-      const data = await fetchJson(url, { headers: { Accept: 'application/json' } }, 18000, 'Uçuş radarı');
-      if (!data || !Array.isArray(data.aircraft)) throw new Error('Uçuş yanıtının biçimi beklenenden farklı');
-      flights = normalizeAdsbLolAircraft(data);
-    } catch (primaryError) {
-      const fallbackUrl = 'https://opensky-network.org/api/states/all?lamin=40.8&lomin=28.5&lamax=41.3&lomax=29.3';
-      const fallback = await fetchJson(fallbackUrl, { headers: { Accept: 'application/json' } }, 18000, 'Yedek uçuş radarı');
-      if (!fallback || !Array.isArray(fallback.states)) throw primaryError;
-      flights = normalizeOpenSkyStates(fallback.states);
-      freshness = 'YEDEK VERİ';
-    }
-    writeCache(storage(), key, flights, FLIGHT_TTL);
-    renderFlights(flights, freshness);
-  } catch (error) {
-    let cached = null;
-    try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
-    if (cached) {
-      renderFlights(cached, 'ÖNBELLEK');
-      toast('Canlı uçuş akışı geçici olarak erişilemiyor; son kayıt korunuyor.', 'warn');
-    } else {
-      updateFreshness('flight-updated', 'BAĞLANTI YOK');
-      const count = document.getElementById('flight-count');
-      const nearest = document.getElementById('flight-nearest');
-      if (count) count.textContent = '—';
-      if (nearest) nearest.textContent = 'Uçuş verisi şu an alınamıyor. Yeniden denenecek.';
-      console.warn('Both international flight feeds failed.', error);
-    }
-  }
-}
-
 function searchPlaces(query) {
   const run = nomChain.then(async () => {
     const wait = PLACE_SEARCH_GAP - (Date.now() - nomAt);
@@ -837,18 +745,6 @@ function addLayers() {
       'circle-stroke-color': '#3b1118'
     }
   });
-  map.addSource('flights', { type: 'geojson', data: emptyCollection() });
-  map.addLayer({
-    id: 'flights',
-    type: 'circle',
-    source: 'flights',
-    paint: {
-      'circle-radius': 5,
-      'circle-color': '#ff453b',
-      'circle-stroke-width': 1.5,
-      'circle-stroke-color': '#ffffff'
-    }
-  });
   map.addSource('weather-point', { type: 'geojson', data: emptyCollection() });
   map.addLayer({
     id: 'weather-point',
@@ -881,7 +777,7 @@ function addLayers() {
       'circle-stroke-color': '#ffffff'
     }
   });
-  ['transit-stops', 'flights', 'transit-lines'].forEach((id) => {
+  ['transit-stops', 'transit-lines'].forEach((id) => {
     map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
   });
@@ -897,27 +793,16 @@ function addLayers() {
     if (!feature) return;
     popup(event.lngLat, feature.properties.name || 'Hat', modeLabel(feature.properties.mode));
   });
-  map.on('click', 'flights', (event) => {
-    const feature = event.features && event.features[0];
-    if (!feature) return;
-    const altitude = feature.properties.altitude == null || feature.properties.altitude === 'null' ? 'irtifa yok' : `${Math.round(Number(feature.properties.altitude))} m`;
-    const country = feature.properties.country || '';
-    popup(event.lngLat, feature.properties.callsign || 'Uçuş', `${altitude}${country ? ` · ${country}` : ''}`);
-  });
 }
 
 function startLiveData() {
   if (liveDataStarted) return;
   liveDataStarted = true;
   loadWeather(false);
-  loadFlights(false);
   loadTransit();
   window.setInterval(() => {
     if (navigator.onLine) loadWeather(true);
   }, WEATHER_TTL);
-  window.setInterval(() => {
-    if (navigator.onLine) loadFlights(true);
-  }, 10 * 60 * 1000);
   window.setInterval(() => {
     if (navigator.onLine) loadTransit(true);
   }, 30 * 60 * 1000);
@@ -1012,7 +897,6 @@ function bindUi() {
   setLucide('mode-foot', 'footprints');
   setLucide('mode-bike', 'bike');
   setLucide('mode-car', 'car');
-  setLucide('flight-icon', 'plane');
   setLucide('weather-icon', 'cloud-sun');
   applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
   document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -1045,7 +929,6 @@ function bindUi() {
   document.getElementById('nearest-btn').addEventListener('click', locateNearest);
   document.getElementById('transit-route-btn').addEventListener('click', calculateTransitRoute);
   document.getElementById('weather-refresh').addEventListener('click', () => loadWeather(true));
-  document.getElementById('flight-refresh').addEventListener('click', () => loadFlights(true));
   bindSearch('origin-input', 'origin-suggest', 'origin');
   bindSearch('destination-input', 'destination-suggest', 'destination');
   document.addEventListener('click', (event) => {
