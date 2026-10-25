@@ -1,85 +1,57 @@
-# İstanbul Açık Ulaşım ve Hava Kokpiti
+# Ergin Lab · İstanbul Saha Deneyi 01
 
-Tarayıcıda çalışan, yabancı ve açık kaynaklı servislerle İstanbul ulaşımını, canlı havayı ve ulaşım verilerini tek kokpitte toplayan çevrimdışı kullanılabilir bir PWA.
+İstanbul için deneysel bisiklet altyapısı haritası, canlı hava durumu ve rota arayüzü. Bu proje resmî bir navigasyon veya güvenli rota garantisi değildir; açık harita etiketlerini gözlemlemek, karşılaştırmak ve saha notları tutmak için hazırlanmış bir laboratuvar arayüzüdür.
 
-Canlı demo: https://eerrgin.github.io/istanbul-cockpit/
+Canlı deney: https://eerrgin.github.io/istanbul-cockpit/
 
-Kokpit; canlı hava, harita, ulaşım hatları, durak arama ve rota planlamasını içerir.
+## Deney alanları
 
-## Özellikler
+- Bisiklet altyapısı katmanı: ayrılmış bisiklet yolları, yol üzeri şeritler ve paylaşımlı/bisiklete açık güzergâhlar farklı renklerle gösterilir.
+- Deney 01 filtresi: yalnızca haritada ayrılmış bisiklet yolu olarak etiketlenmiş bölümleri gösterir.
+- Harita üzerinde bir güzergâha tıklayarak mevcut etiket, zemin, yaya ayrımı ve aydınlatma alanlarını inceleme.
+- Yürüme, bisiklet ve araç için genel rota planlayıcısı.
+- İstanbul için canlı hava durumu, saatlik ve dört günlük tahmin.
+- Saha not defteri: notlar tarayıcının yerel depolamasında tutulur; dosya olarak dışa aktarılabilir.
+- Masaüstü ve mobil ekranlara uyarlanmış düzen; tema seçimi ve çevrimdışı önbellek.
 
-- Çok modlu rota planlama: yürüme, bisiklet ve araba
-- Canlı hava durumu ve saatlik tahmin
-- Toplu taşıma hatları ve duraklar
-- En yakın durak bulma
-- Duraklar arası istemci tarafı rota
-- Çevrimdışı PWA desteği
-- Koyu ve açık tema
-- Tamamen yabancı açık kaynak servisler
+## Teknoloji ve açık veri
 
-## Kullanılan teknolojiler
-
-| Teknoloji | Rol |
+| Parça | Kullanım |
 | --- | --- |
-| MapLibre GL JS | Harita görüntüleme ve katmanlar |
-| OpenStreetMap | Raster harita karoları |
-| Photon (Komoot) | Yazarken adres arama |
-| Open-Meteo | Canlı hava ve saatlik tahmin |
-| OSRM / FOSSGIS routing | Yürüme, bisiklet ve araba rotası |
-| Overpass API | Metro, tramvay ve vapur hatları |
-| Vanilla JavaScript | Arayüz ve orkestrasyon |
-| Vitest | Saf fonksiyon testleri |
-| GitHub Actions | Sürekli test |
+| MapLibre GL JS | Etkileşimli harita ve katmanlar |
+| OpenStreetMap | Harita ve bisiklet altyapısı geometrisi |
+| Overpass API | Haritadaki bisiklet etiketi sorguları |
+| Photon (Komoot) | Adres önerileri |
+| Open-Meteo | Hava durumu ve tahmin |
+| OSRM / FOSSGIS routing | Yürüme, bisiklet ve araç rotaları |
+| localStorage | Bu cihazdaki deney notları ve önbellek |
+| Vitest | Altyapı etiket sınıflandırma ve yardımcı işlev testleri |
 
-## Mimari
+## Bisiklet katmanı nasıl okunur?
 
-```mermaid
-flowchart LR
-  Tarayici[Tarayıcı arayüzü] --> App[app.js]
-  App --> Utils[utils.js]
-  App --> Harita[MapLibre GL JS]
-  Harita --> OSM[OpenStreetMap]
-  App --> Photon
-  App --> OSRM
-  App --> Meteo[Open-Meteo]
-  App --> Overpass[Overpass API]
-  App --> PWA[Service Worker]
-```
+Yeşil çizgiler, ayrı bisiklet yolu olarak etiketlenmiş highway=cycleway veya cycleway=track kayıtlarını; kırmızı çizgiler yol üzerindeki bisiklet şeritlerini; lila çizgiler paylaşımlı ya da bisiklete açık güzergâhları temsil eder. Sınıflandırma haritadaki etiketlere dayanır. Eksik, eskimiş veya hatalı kayıtlar olabilir; bir çizgi tek başına o yolun güncel ya da güvenli olduğu anlamına gelmez.
 
-## Kurulum
+## Geliştirme ve test
 
-Proje derleme gerektirmez. ES modülleri `file://` adresinde engellendiği için basit bir statik sunucu kullanın:
+Proje statik dosyalardan oluşur. ES modüllerinin tarayıcıda açılabilmesi için bir yerel HTTP sunucusu kullan:
 
-```bash
-python3 -m http.server 8080
-```
+    python3 -m http.server 8080
 
-Ardından tarayıcıda `http://127.0.0.1:8080` adresini açın.
+Ardından http://127.0.0.1:8080 adresini aç. Testler:
 
-## Test
+    npm install
+    npm test
 
-```bash
-npm install
-npm test
-```
+## Notların gizliliği
 
-Kapsam raporu için `npm run coverage`.
+Saha notları localStorage içinde bu tarayıcıda saklanır; uygulama notları bir sunucuya göndermez. Tarayıcı verileri temizlenirse notlar da silinebilir. Önemli notları dosya olarak dışa aktar.
 
-## Katkı
+## Lisans ve atıf
 
-Küçük ve odaklı değişiklikler tercih edilir. Yeni veri kaynağı eklemeden önce lisansın açık olduğunu ve Türkiye kaynaklı bir servis olmadığını doğrulayın. Saf hesapları `utils.js` içinde tutun ve testi olmadan birleştirmeyin.
-
-## Lisans
-
-MIT. Metin `LICENSE` dosyasındadır.
-
-## Atıf
-
-- OpenStreetMap: © OpenStreetMap contributors. Harita ve ulaşım geometrisi Open Database License (ODbL) altındadır. https://www.openstreetmap.org/copyright
-- Open-Meteo: Hava verisi Open-Meteo.com tarafından sağlanır, CC BY 4.0. https://open-meteo.com/
-- OSRM / FOSSGIS: Yaya, bisiklet ve araç yönlendirmesi. Yol ağı verisi © OpenStreetMap contributors. https://routing.openstreetmap.de/about.html
-- Overpass API: Toplu taşıma ilişkileri genel kapsamlı Overpass örneklerinden sorgulanır. Veri © OpenStreetMap contributors. https://overpass.private.coffee/
-- Photon by Komoot: Adres araması; veri © OpenStreetMap contributors, ODbL. https://photon.komoot.io/
+- OpenStreetMap: © OpenStreetMap contributors. Harita verisi Open Database License (ODbL) altındadır: https://www.openstreetmap.org/copyright
+- Open-Meteo: https://open-meteo.com/
+- Photon by Komoot: https://photon.komoot.io/
+- OSRM / FOSSGIS routing: https://routing.openstreetmap.de/about.html
 - MapLibre GL JS: BSD 3-Clause. https://maplibre.org/
 
-Bu kokpit Türkiye kaynaklı hiçbir API, veri seti, CDN, font veya ikon paketi kullanmaz. Tüm veri kaynakları yabancı operatörler tarafından sunulur ve açık lisanslıdır.
+Kamuya açık Overpass sunucuları yoğunluk veya limit nedeniyle zaman zaman yanıt vermeyebilir. Uygulama sonuçları önbelleğe alır; veri alınamazsa durum kartında erişim sorunu gösterilir.
