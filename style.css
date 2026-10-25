@@ -551,7 +551,6 @@ body {
   border-color: rgba(255, 68, 58, .6);
   box-shadow: inset 0 0 0 1px rgba(255, 48, 40, .06);
 }
-.stop-item:hover { color: #fff4ed; }
 .map-wrap { background: #080306; }
 #map { background: #080306; }
 .maplibregl-ctrl-group {
