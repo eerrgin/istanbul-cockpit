@@ -7,6 +7,7 @@ import {
   formatDistance,
   formatDuration,
   haversine,
+  normalizeAdsbLolAircraft,
   normalizeOpenSkyStates,
   overpassToGeoJSON,
   readCache,
@@ -135,6 +136,30 @@ describe('OpenSky normalizasyonu', () => {
     const rows = normalizeOpenSkyStates([null, ['only'], ['id', 'X', 'DE', 1, 1, null, null]]);
     expect(rows).toEqual([]);
     expect(normalizeOpenSkyStates(null)).toEqual([]);
+  });
+});
+
+describe('ADSB.lol normalizasyonu', () => {
+  it('canlı uçak nesnelerini ortak kokpit biçimine çevirir', () => {
+    const rows = normalizeAdsbLolAircraft({
+      aircraft: [
+        { hex: '4ca123', flight: ' THY123 ', lat: 41.12, lon: 28.96, alt_baro: 32000, gs: 240, track: 185 },
+        { hex: 'bad', lat: null, lon: 28.9 },
+        { hex: 'ground', lat: 41.1, lon: 28.9, alt_baro: 'ground' }
+      ]
+    });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      icao24: '4ca123',
+      callsign: 'THY123',
+      enlem: 41.12,
+      boylam: 28.96,
+      irtifa: 32000,
+      hız: 444.48,
+      yön: 185
+    });
+    expect(rows[1].irtifa).toBeNull();
+    expect(normalizeAdsbLolAircraft({})).toEqual([]);
   });
 });
 
