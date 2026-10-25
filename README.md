@@ -2,9 +2,9 @@
 
 Tarayıcıda çalışan, yabancı ve açık kaynaklı servislerle İstanbul ulaşımını, canlı havayı ve ulaşım verilerini tek kokpitte toplayan çevrimdışı kullanılabilir bir PWA.
 
-Canlı demo: `https://eerrgin.github.io/istanbul-cockpit/` (yer tutucu)
+Canlı demo: https://eerrgin.github.io/istanbul-cockpit/
 
-Ekran görüntüsü: `docs/ekran-goruntusu.png` (yer tutucu)
+Kokpit; canlı hava, harita, ulaşım hatları, durak arama ve rota planlamasını içerir.
 
 ## Özellikler
 
