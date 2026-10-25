@@ -392,7 +392,12 @@ function renderWeather(data, freshness = 'GÜNCEL') {
         timeZone: 'Europe/Istanbul'
       }).format(new Date(`${dayTimes[i]}T12:00:00+03:00`)).toLocaleUpperCase('tr-TR');
       const condition = document.createElement('small');
-      condition.textContent = wmoToTurkish(daily.weather_code && daily.weather_code[i]).ikon || '··';
+      const weatherCode = Number(daily.weather_code && daily.weather_code[i]);
+      condition.textContent = weatherCode <= 1 ? '☀' : weatherCode === 2 ? '◒' : weatherCode === 3 ? '☁' :
+        weatherCode >= 45 && weatherCode <= 48 ? '≋' :
+        weatherCode >= 51 && weatherCode <= 67 ? '☂' :
+        weatherCode >= 71 && weatherCode <= 86 ? '❄' :
+        weatherCode >= 95 ? 'ϟ' : '··';
       const low = Number(daily.temperature_2m_min && daily.temperature_2m_min[i]);
       const high = Number(daily.temperature_2m_max && daily.temperature_2m_max[i]);
       const range = document.createElement('strong');
@@ -775,7 +780,7 @@ function addLayers() {
     source: 'transit-lines',
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: {
-      'line-color': ['match', ['get', 'mode'], 'subway', '#2563eb', 'light_rail', '#7c3aed', 'tram', '#d97706', 'ferry', '#0891b2', '#475569'],
+      'line-color': ['match', ['get', 'mode'], 'subway', '#ff4138', 'light_rail', '#ff8a7d', 'tram', '#e3ad7c', 'ferry', '#e8c6cf', '#916b72'],
       'line-width': 3
     }
   });
@@ -788,7 +793,7 @@ function addLayers() {
       'circle-radius': 4,
       'circle-color': '#ffffff',
       'circle-stroke-width': 2,
-      'circle-stroke-color': '#0f172a'
+      'circle-stroke-color': '#3b1118'
     }
   });
   map.addSource('flights', { type: 'geojson', data: emptyCollection() });
@@ -798,7 +803,7 @@ function addLayers() {
     source: 'flights',
     paint: {
       'circle-radius': 5,
-      'circle-color': '#7c3aed',
+      'circle-color': '#ff453b',
       'circle-stroke-width': 1.5,
       'circle-stroke-color': '#ffffff'
     }
@@ -810,9 +815,9 @@ function addLayers() {
     source: 'weather-point',
     paint: {
       'circle-radius': 8,
-      'circle-color': '#e2b15a',
+      'circle-color': '#ff3028',
       'circle-stroke-width': 2,
-      'circle-stroke-color': '#1c1408'
+      'circle-stroke-color': '#3b1118'
     }
   });
   map.addSource('route', { type: 'geojson', data: emptyCollection() });
@@ -830,7 +835,7 @@ function addLayers() {
     source: 'nearest-stop',
     paint: {
       'circle-radius': 9,
-      'circle-color': '#16a34a',
+      'circle-color': '#f0a08e',
       'circle-stroke-width': 3,
       'circle-stroke-color': '#ffffff'
     }
@@ -900,7 +905,7 @@ function initMap() {
           attribution: '© OpenStreetMap contributors'
         }
       },
-      layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+      layers: [{ id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-saturation': -0.72, 'raster-contrast': 0.12, 'raster-brightness-min': 0.02, 'raster-brightness-max': 0.72 } }]
     }
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-left');
