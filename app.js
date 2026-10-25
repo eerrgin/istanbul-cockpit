@@ -6,6 +6,7 @@ import {
   formatDistance,
   formatDuration,
   haversine,
+  normalizeAdsbLolAircraft,
   normalizeOpenSkyStates,
   overpassToGeoJSON,
   readCache,
@@ -14,16 +15,16 @@ import {
 } from './utils.js';
 
 const CENTER = { lat: 41.0082, lon: 28.9784 };
-const FLIGHT_TTL = 5 * 60 * 1000;
+const FLIGHT_TTL = 10 * 60 * 1000;
 const WEATHER_TTL = 10 * 60 * 1000;
-const TRANSIT_TTL = 10 * 60 * 1000;
-const NOMINATIM_GAP = 1000;
+const TRANSIT_TTL = 30 * 60 * 1000;
+const PLACE_SEARCH_GAP = 700;
 const OVERPASS_ENDPOINTS = [
+  'https://overpass.private.coffee/api/interpreter',
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.osm.ch/api/interpreter'
+  'https://overpass.kumi.systems/api/interpreter'
 ];
-const OVERPASS_QUERY = '[out:json][timeout:35];(relation["route"="subway"](40.80,28.40,41.35,29.50);relation["route"="light_rail"](40.80,28.40,41.35,29.50);relation["route"="tram"](40.80,28.40,41.35,29.50);relation["route"="ferry"](40.80,28.40,41.35,29.50););out geom;';
+const OVERPASS_QUERY = '[out:json][timeout:25];(relation["route"~"^(subway|light_rail|tram|ferry|train|monorail)$"](40.80,28.40,41.35,29.50););out geom;';
 const LAYER_IDS = {
   lines: 'transit-lines',
   stops: 'transit-stops',
@@ -109,6 +110,8 @@ function modeLabel(mode) {
   if (mode === 'light_rail') return 'Hafif ray';
   if (mode === 'tram') return 'Tramvay';
   if (mode === 'ferry') return 'Vapur';
+  if (mode === 'train') return 'Tren / Marmaray';
+  if (mode === 'monorail') return 'Monoray';
   return 'Hat';
 }
 
@@ -311,9 +314,9 @@ async function fetchOverpass() {
         body
       }, 28000, 'Overpass');
       if (!data || !Array.isArray(data.elements)) throw new Error('Overpass yanıtı beklenen biçimde değil');
-      const relations = data.elements.filter((element) => element.type === 'relation').length;
-      if (relations > 0) return data;
-      lastError = new Error('Toplu taşıma hattı bulunamadı');
+      const geo = overpassToGeoJSON(data);
+      if (geo.lines.features.length && geo.stops.features.length) return data;
+      lastError = new Error('Bu sunucudan yeterli hat ve durak geometrisi alınamadı');
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Overpass erişilemedi');
     }
@@ -322,7 +325,7 @@ async function fetchOverpass() {
 }
 
 async function loadTransit(force = false) {
-  const key = 'cockpit:transit:v1';
+  const key = 'cockpit:transit:v2';
   try {
     const cached = force ? null : readCache(storage(), key);
     if (cached && cached.lines && cached.stops) {
@@ -345,9 +348,24 @@ async function loadTransit(force = false) {
     }
     if (!payload.lines.features.length) toast('Toplu taşıma hattı bulunamadı', 'warn');
   } catch (error) {
-    updateFreshness('transit-updated', 'BAĞLANTI YOK');
-    toast(error.message || 'Toplu taşıma verisi alınamadı');
-    renderStopList();
+    let cached = null;
+    try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
+    if (cached && cached.lines && cached.stops) {
+      applyTransit(cached);
+      updateFreshness('transit-updated', 'ÖNBELLEK');
+      toast('Canlı ulaşım verisi geçici olarak erişilemiyor; kayıtlı duraklar korunuyor.', 'warn');
+    } else {
+      updateFreshness('transit-updated', 'BAĞLANTI YOK');
+      console.warn('All international transit feeds failed.', error);
+      const list = document.getElementById('stop-list');
+      if (list) {
+        list.replaceChildren();
+        const item = document.createElement('li');
+        item.className = 'suggest-empty';
+        item.textContent = 'Durak verisi şu an alınamıyor. Yeniden denenecek.';
+        list.append(item);
+      }
+    }
   }
 }
 
@@ -519,7 +537,7 @@ function renderFlights(flights, freshness = 'GÜNCEL') {
 }
 
 async function loadFlights(force) {
-  const key = 'cockpit:flights:v1';
+  const key = 'cockpit:flights:adsblol:v2';
   if (!force) {
     try {
       const cached = readCache(storage(), key);
@@ -528,46 +546,68 @@ async function loadFlights(force) {
         return;
       }
     } catch (error) {
-      toast('Kayıtlı uçuşlar okunamadı', 'warn');
+      console.warn('Cached flight data could not be read.', error);
     }
   }
-  const url = 'https://opensky-network.org/api/states/all?lamin=40.8&lomin=28.5&lamax=41.3&lomax=29.3';
   try {
-    const data = await fetchJson(url, { headers: { Accept: 'application/json' } }, 20000, 'Uçuş radarı');
-    const flights = normalizeOpenSkyStates(data && data.states ? data.states : []);
+    let flights;
+    let freshness = 'CANLI VERİ';
     try {
-      writeCache(storage(), key, flights, FLIGHT_TTL);
-    } catch (error) {
-      toast('Uçuş önbelleği yazılamadı', 'warn');
+      const url = `https://api.adsb.lol/v2/lat/${CENTER.lat}/lon/${CENTER.lon}/dist/100`;
+      const data = await fetchJson(url, { headers: { Accept: 'application/json' } }, 18000, 'Uçuş radarı');
+      if (!data || !Array.isArray(data.aircraft)) throw new Error('Uçuş yanıtının biçimi beklenenden farklı');
+      flights = normalizeAdsbLolAircraft(data);
+    } catch (primaryError) {
+      const fallbackUrl = 'https://opensky-network.org/api/states/all?lamin=40.8&lomin=28.5&lamax=41.3&lomax=29.3';
+      const fallback = await fetchJson(fallbackUrl, { headers: { Accept: 'application/json' } }, 18000, 'Yedek uçuş radarı');
+      if (!fallback || !Array.isArray(fallback.states)) throw primaryError;
+      flights = normalizeOpenSkyStates(fallback.states);
+      freshness = 'YEDEK VERİ';
     }
-    renderFlights(flights, 'CANLI VERİ');
+    writeCache(storage(), key, flights, FLIGHT_TTL);
+    renderFlights(flights, freshness);
   } catch (error) {
     let cached = null;
     try { cached = readCache(storage(), key); } catch (readError) { cached = null; }
     if (cached) {
       renderFlights(cached, 'ÖNBELLEK');
-      toast('Uçuş verisi alınamadı, önbellek kullanıldı', 'warn');
+      toast('Canlı uçuş akışı geçici olarak erişilemiyor; son kayıt korunuyor.', 'warn');
     } else {
       updateFreshness('flight-updated', 'BAĞLANTI YOK');
-      toast(error.message || 'Uçuş verisi alınamadı');
+      const count = document.getElementById('flight-count');
+      const nearest = document.getElementById('flight-nearest');
+      if (count) count.textContent = '—';
+      if (nearest) nearest.textContent = 'Uçuş verisi şu an alınamıyor. Yeniden denenecek.';
+      console.warn('Both international flight feeds failed.', error);
     }
   }
 }
 
-function nominatim(query) {
+function searchPlaces(query) {
   const run = nomChain.then(async () => {
-    const wait = NOMINATIM_GAP - (Date.now() - nomAt);
+    const wait = PLACE_SEARCH_GAP - (Date.now() - nomAt);
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     nomAt = Date.now();
-    const url = new URL('https://nominatim.openstreetmap.org/search');
-    url.searchParams.set('format', 'jsonv2');
+    const url = new URL('https://photon.komoot.io/api/');
     url.searchParams.set('q', query);
     url.searchParams.set('limit', '5');
-    url.searchParams.set('addressdetails', '0');
-    url.searchParams.set('accept-language', 'tr');
-    url.searchParams.set('viewbox', '28.40,41.35,29.50,40.80');
-    url.searchParams.set('bounded', '0');
-    return fetchJson(url.toString(), { headers: { Accept: 'application/json' } }, 12000, 'Adres arama');
+    url.searchParams.set('lang', 'tr');
+    url.searchParams.set('lat', String(CENTER.lat));
+    url.searchParams.set('lon', String(CENTER.lon));
+    url.searchParams.set('bbox', '28.40,40.80,29.50,41.35');
+    const payload = await fetchJson(url.toString(), { headers: { Accept: 'application/json' } }, 12000, 'Adres arama');
+    const features = payload && Array.isArray(payload.features) ? payload.features : [];
+    return features.flatMap((feature) => {
+      const coords = feature && feature.geometry && feature.geometry.coordinates;
+      const props = feature && feature.properties ? feature.properties : {};
+      if (!Array.isArray(coords) || coords.length < 2) return [];
+      const street = [props.housenumber, props.street].filter(Boolean).join(' ');
+      const candidates = [props.name, street, props.district, props.city, props.state, props.country]
+        .filter((value) => typeof value === 'string' && value.trim());
+      const parts = candidates.filter((value, index) => candidates.indexOf(value) === index);
+      const display_name = parts.join(', ') || query;
+      return [{ display_name, lat: String(coords[1]), lon: String(coords[0]) }];
+    });
   });
   nomChain = run.then(() => {}, () => {});
   return run;
@@ -623,14 +663,14 @@ function bindSearch(inputId, listId, key) {
       const token = searchSeq[key] + 1;
       searchSeq[key] = token;
       try {
-        const results = await nominatim(query);
+        const results = await searchPlaces(query);
         if (token !== searchSeq[key]) return;
         renderSuggestions(input, list, results);
       } catch (error) {
         if (token !== searchSeq[key]) return;
         toast(error.message || 'Adres araması başarısız');
       }
-    }, NOMINATIM_GAP));
+    }, 650));
   });
   list.addEventListener('keydown', (event) => {
     const buttons = [...list.querySelectorAll('button')];
@@ -684,7 +724,9 @@ async function calculateRoute() {
   const button = document.getElementById('route-btn');
   button.disabled = true;
   try {
-    const url = `https://router.project-osrm.org/route/v1/${profile}/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&geometries=geojson&steps=true&alternatives=false`;
+    const engineProfile = profile === 'driving' ? 'routed-car' : profile === 'bike' ? 'routed-bike' : 'routed-foot';
+    const coordinates = `${origin.lon},${origin.lat};${destination.lon},${destination.lat}`;
+    const url = `https://routing.openstreetmap.de/${engineProfile}/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=true&alternatives=false`;
     const data = await fetchJson(url, { headers: { Accept: 'application/json' } }, 20000, 'Rota');
     if (!data.routes || !data.routes[0] || !data.routes[0].geometry) {
       throw new Error(data.message || 'Rota bulunamadı');
@@ -697,7 +739,8 @@ async function calculateRoute() {
     const steps = route.legs && route.legs[0] && Array.isArray(route.legs[0].steps) ? route.legs[0].steps : [];
     renderSteps(steps.map(stepText));
   } catch (error) {
-    toast(error.message || 'Rota hesaplanamadı');
+    console.warn('Route calculation failed.', error);
+    toast('Rota şu an hesaplanamıyor. Adresleri kontrol edip yeniden dene.', 'warn');
   } finally {
     button.disabled = false;
   }
