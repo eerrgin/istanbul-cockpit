@@ -182,7 +182,8 @@ export function normalizeAdsbLolAircraft(payload) {
         enlem < -90 || enlem > 90 || boylam < -180 || boylam > 180) return [];
     const baro = plane.alt_baro;
     const geom = plane.alt_geom;
-    const irtifa = typeof baro === 'number' ? baro : (typeof geom === 'number' ? geom : null);
+    const altitudeFeet = typeof baro === 'number' ? baro : (typeof geom === 'number' ? geom : null);
+    const irtifa = altitudeFeet == null ? null : Math.round(altitudeFeet * 0.3048);
     const flight = typeof plane.flight === 'string' ? plane.flight.trim() : '';
     const callsign = flight || (typeof plane.r === 'string' ? plane.r.trim() : '');
     return [{
